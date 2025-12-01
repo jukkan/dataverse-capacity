@@ -1,25 +1,25 @@
 {
-  "name": "dataverse-capacity-calculator",
+  "name": "dataverse-capacity",
   "version": "1.0.0",
-  "description": "Interactive Dataverse Capacity Calculator for Microsoft Power Platform and Dynamics 365",
-  "private": true,
+  "description": "Calculator for the Dataverse capacity you get from different Microsoft product licenses.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.16",
-    "vite": "^6.0.3"
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.18",
+    "vite": "^7.2.6"
   }
 }
