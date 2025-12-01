@@ -1,2 +1,78 @@
-# dataverse-capacity
-Calculator for the Dataverse capacity you get from different Microsoft product licenses.
+# Dataverse Capacity Calculator
+
+An interactive web-based calculator for estimating Microsoft Dataverse capacity based on Power Platform and Dynamics 365 product licenses.
+
+![Dataverse Capacity Calculator](https://github.com/user-attachments/assets/d550ea40-cea4-4331-8f40-860be6de91a8)
+
+## Features
+
+- **Interactive Product Selection**: Choose from all major Dynamics 365 and Power Platform products
+- **Real-time Calculations**: See capacity updates instantly as you add products and adjust user counts
+- **Visual Capacity Gauges**: Clear visualization of default vs. per-user capacity allocation
+- **Detailed Breakdown Table**: Line-by-line breakdown of capacity contributions
+- **Helpful Tooltips**: Hover over products to see capacity details
+- **"How it Works" Guide**: Built-in explanation of Dataverse capacity licensing
+- **Mobile Responsive**: Works on desktop and mobile devices
+- **Print-friendly**: Clean output for printing or sharing
+
+## Capacity Calculation
+
+![Calculator with data](https://github.com/user-attachments/assets/b75e322c-2dfa-4d69-bdf7-a646e66aa403)
+
+### How Capacity Works
+
+1. **Default Capacity**: When you license any Dataverse product, your tenant receives a one-time default capacity allocation. The highest tier product determines this amount.
+
+2. **Per-User Accrual**: Many products add additional capacity for each licensed user. This stacks across all products.
+
+3. **Tier Priority** (highest to lowest):
+   - D365 ERP Premium (125 GB DB / 110 GB File)
+   - D365 ERP Standard (90 GB DB / 80 GB File)
+   - D365 CRM (30 GB DB / 40 GB File)
+   - Power Platform Premium (20 GB DB / 40 GB File)
+   - Power Platform Workload (15 GB DB / 20 GB File)
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm
+
+### Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Tech Stack
+
+- **React 18** - UI framework
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+
+## Deployment
+
+The site automatically deploys to GitHub Pages when changes are pushed to the `main` branch via GitHub Actions.
+
+**Live Site**: [https://jukkan.github.io/dataverse-capacity/](https://jukkan.github.io/dataverse-capacity/)
+
+## Disclaimer
+
+This calculator provides estimates based on publicly available licensing information (December 2025 values). Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
+
+## Resources
+
+- [Dataverse Capacity Documentation](https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage)
+- [Storage Management Guide](https://learn.microsoft.com/en-us/dynamics365/fin-ops-core/dev-itpro/get-started/storage-management)
+- [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/)
