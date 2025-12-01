@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 
-// Product definitions with capacity values (December 2025)
+// Product definitions with capacity values
+// Source: Microsoft Dataverse capacity documentation (verified December 2025)
+// Values may change - verify at https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage
 const PRODUCT_TIERS = [
   {
     id: 'erp-premium',
@@ -25,7 +27,7 @@ const PRODUCT_TIERS = [
       { id: 'commerce', name: 'Commerce', dbPerUser: 5, filePerUser: 5, tooltip: 'Dynamics 365 Commerce - 5 GB DB + 5 GB File per user' },
       { id: 'finance', name: 'Finance', dbPerUser: 5, filePerUser: 5, tooltip: 'Dynamics 365 Finance - 5 GB DB + 5 GB File per user' },
       { id: 'project-ops', name: 'Project Operations', dbPerUser: 5, filePerUser: 5, tooltip: 'Dynamics 365 Project Operations - 5 GB DB + 5 GB File per user' },
-      { id: 'scm', name: 'Supply Chain Mgmt', dbPerUser: 5, filePerUser: 5, tooltip: 'Dynamics 365 Supply Chain Management - 5 GB DB + 5 GB File per user' },
+      { id: 'scm', name: 'Supply Chain Management', dbPerUser: 5, filePerUser: 5, tooltip: 'Dynamics 365 Supply Chain Management - 5 GB DB + 5 GB File per user' },
       { id: 'hr', name: 'Human Resources', dbPerUser: 1, filePerUser: 2, tooltip: 'Dynamics 365 Human Resources - 1 GB DB + 2 GB File per user' },
     ]
   },
