@@ -382,14 +382,20 @@ const ProductRow = ({ sku, value, onChange }) => {
   );
 };
 
-const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
+const TierGroup = ({ tier, licenses, onLicenseChange, isHighest, isExpanded, onToggle }) => {
   const colors = tierColors[tier.id];
   const tierDefaults = getTierDefaults(tier);
   const skus = tier.skuIds.map(id => SKU_MAP[id]).filter(Boolean);
   
+  // Count how many products are selected in this tier
+  const selectedCount = skus.filter(sku => (licenses[sku.id] || 0) > 0).length;
+  
   return (
     <div className={`rounded-lg border ${isHighest ? colors.border + ' ' + colors.light : 'border-gray-200 bg-white'} overflow-hidden`}>
-      <div className={`px-3 py-2 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50'} flex items-center justify-between`}>
+      <button
+        onClick={onToggle}
+        className={`w-full px-3 py-2 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50 hover:bg-gray-100'} flex items-center justify-between text-left transition`}
+      >
         <div className="flex items-center gap-2">
           <span className={`font-semibold text-sm ${isHighest ? 'text-white' : 'text-gray-700'}`}>
             {tier.name}
@@ -397,21 +403,31 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
           {isHighest && (
             <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">★ Active</span>
           )}
+          {selectedCount > 0 && !isHighest && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{selectedCount} selected</span>
+          )}
         </div>
-        <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
-          {tierDefaults.dbDefault}GB / {tierDefaults.fileDefault}GB
-        </span>
-      </div>
-      <div className="px-3 py-2 space-y-1">
-        {skus.map(sku => (
-          <ProductRow
-            key={sku.id}
-            sku={sku}
-            value={licenses[sku.id] || 0}
-            onChange={(val) => onLicenseChange(sku.id, val)}
-          />
-        ))}
-      </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
+            {tierDefaults.dbDefault}GB / {tierDefaults.fileDefault}GB
+          </span>
+          <span className={`text-xs ${isHighest ? 'text-white/60' : 'text-gray-400'}`}>
+            {isExpanded ? '▲' : '▼'}
+          </span>
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="px-3 py-2 space-y-1">
+          {skus.map(sku => (
+            <ProductRow
+              key={sku.id}
+              sku={sku}
+              value={licenses[sku.id] || 0}
+              onChange={(val) => onLicenseChange(sku.id, val)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -565,6 +581,8 @@ export default function DataverseCapacityCalculator() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(true);
+  // Track which tier groups are expanded - default to first tier expanded on desktop
+  const [expandedTiers, setExpandedTiers] = useState({ 'erp-premium': true });
   
   // Track first visit and what's new dismissal using localStorage
   useEffect(() => {
@@ -592,6 +610,10 @@ export default function DataverseCapacityCalculator() {
     } catch (e) {
       // localStorage may not be available
     }
+  };
+  
+  const handleToggleTier = (tierId) => {
+    setExpandedTiers(prev => ({ ...prev, [tierId]: !prev[tierId] }));
   };
   
   // Close sidebar on Escape key press
@@ -748,9 +770,11 @@ export default function DataverseCapacityCalculator() {
           <p><strong>Add-ons:</strong> Purchased separately in 1 GB increments, pooled tenant-wide.</p>
         </InfoPanel>
         
-        {/* What's New December 2025 announcement */}
+        {/* What's New December 2025 announcement - only shown on mobile in sidebar */}
         {showWhatsNew && (
-          <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+          <div className="lg:hidden">
+            <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+          </div>
         )}
         
         <div className="space-y-3">
@@ -761,6 +785,8 @@ export default function DataverseCapacityCalculator() {
               licenses={licenses}
               onLicenseChange={handleLicenseChange}
               isHighest={calculation.highestTier?.id === tier.id}
+              isExpanded={expandedTiers[tier.id] || false}
+              onToggle={() => handleToggleTier(tier.id)}
             />
           ))}
         </div>
@@ -832,6 +858,13 @@ export default function DataverseCapacityCalculator() {
       {/* Right Panel - Capacity Metrics */}
       <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
         <div className="max-w-xl">
+          {/* What's New December 2025 announcement - shown on desktop in right panel */}
+          {showWhatsNew && (
+            <div className="hidden lg:block mb-6">
+              <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+            </div>
+          )}
+          
           {calculation.highestTier ? (
             <>
               <div className="mb-8">
