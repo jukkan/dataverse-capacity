@@ -512,13 +512,28 @@ export default function DataverseCapacityCalculator() {
   
   // Track first visit using localStorage
   useEffect(() => {
-    const hasVisited = localStorage.getItem('dataverse-calc-visited');
-    if (!hasVisited) {
-      setShowOnboarding(true);
-      setSidebarOpen(true);
-      localStorage.setItem('dataverse-calc-visited', 'true');
+    try {
+      const hasVisited = localStorage.getItem('dataverse-calc-visited');
+      if (!hasVisited) {
+        setShowOnboarding(true);
+        setSidebarOpen(true);
+        localStorage.setItem('dataverse-calc-visited', 'true');
+      }
+    } catch (e) {
+      // localStorage may not be available in incognito mode or when disabled
     }
   }, []);
+  
+  // Close sidebar on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen]);
   
   const handleLicenseChange = (skuId, value) => {
     setLicenses(prev => ({ ...prev, [skuId]: value }));
@@ -613,6 +628,10 @@ export default function DataverseCapacityCalculator() {
           sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setSidebarOpen(false)}
+        aria-hidden={!sidebarOpen}
+        role="button"
+        tabIndex={sidebarOpen ? 0 : -1}
+        aria-label="Close sidebar"
       />
       
       {/* Left Panel - Product Selection (Collapsible Sidebar on Mobile) */}
@@ -638,6 +657,7 @@ export default function DataverseCapacityCalculator() {
               <button 
                 onClick={() => setShowOnboarding(false)}
                 className="text-blue-400 hover:text-blue-600 text-lg leading-none"
+                aria-label="Close onboarding banner"
               >
                 ×
               </button>
