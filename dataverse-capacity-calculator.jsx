@@ -382,14 +382,20 @@ const ProductRow = ({ sku, value, onChange }) => {
   );
 };
 
-const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
+const TierGroup = ({ tier, licenses, onLicenseChange, isHighest, isExpanded, onToggle }) => {
   const colors = tierColors[tier.id];
   const tierDefaults = getTierDefaults(tier);
   const skus = tier.skuIds.map(id => SKU_MAP[id]).filter(Boolean);
   
+  // Count how many products are selected in this tier
+  const selectedCount = skus.filter(sku => (licenses[sku.id] || 0) > 0).length;
+  
   return (
     <div className={`rounded-lg border ${isHighest ? colors.border + ' ' + colors.light : 'border-gray-200 bg-white'} overflow-hidden`}>
-      <div className={`px-3 py-2 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50'} flex items-center justify-between`}>
+      <button
+        onClick={onToggle}
+        className={`w-full px-3 py-2 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50 hover:bg-gray-100'} flex items-center justify-between text-left transition`}
+      >
         <div className="flex items-center gap-2">
           <span className={`font-semibold text-sm ${isHighest ? 'text-white' : 'text-gray-700'}`}>
             {tier.name}
@@ -397,21 +403,31 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
           {isHighest && (
             <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">★ Active</span>
           )}
+          {selectedCount > 0 && !isHighest && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">{selectedCount} selected</span>
+          )}
         </div>
-        <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
-          {tierDefaults.dbDefault}GB / {tierDefaults.fileDefault}GB
-        </span>
-      </div>
-      <div className="px-3 py-2 space-y-1">
-        {skus.map(sku => (
-          <ProductRow
-            key={sku.id}
-            sku={sku}
-            value={licenses[sku.id] || 0}
-            onChange={(val) => onLicenseChange(sku.id, val)}
-          />
-        ))}
-      </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
+            {tierDefaults.dbDefault}GB / {tierDefaults.fileDefault}GB
+          </span>
+          <span className={`text-xs ${isHighest ? 'text-white/60' : 'text-gray-400'}`}>
+            {isExpanded ? '▲' : '▼'}
+          </span>
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="px-3 py-2 space-y-1">
+          {skus.map(sku => (
+            <ProductRow
+              key={sku.id}
+              sku={sku}
+              value={licenses[sku.id] || 0}
+              onChange={(val) => onLicenseChange(sku.id, val)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -504,13 +520,71 @@ const InfoPanel = ({ title, children, defaultOpen = false }) => {
   );
 };
 
+// What's New panel for announcements with dismiss functionality
+const WhatsNewPanel = ({ onDismiss }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  
+  return (
+    <div className="bg-sky-50 border border-sky-200 rounded-lg overflow-hidden mb-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-sky-100 transition"
+      >
+        <span className="text-sm font-medium text-sky-800 flex items-center gap-2">
+          <span>🆕</span> What's New: December 2025
+          <span className="text-xs bg-sky-200 text-sky-700 px-1.5 py-0.5 rounded font-semibold">NEW</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sky-600">{isOpen ? '▲' : '▼'}</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss();
+            }}
+            className="text-sky-400 hover:text-sky-600 text-lg leading-none"
+            aria-label="Dismiss announcement"
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      </button>
+      {isOpen && (
+        <div className="px-3 py-2 border-t border-sky-200 text-xs text-sky-800 space-y-2">
+          <p>Microsoft increased default Dataverse capacity across all product tiers effective December 1, 2025:</p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li><strong>Power Platform Premium:</strong> 10 → 20 GB database, 20 → 40 GB file</li>
+            <li><strong>Power Platform per-app/Copilot Studio:</strong> 5 → 15 GB database</li>
+            <li><strong>D365 CRM:</strong> 10 → 30 GB database, 20 → 40 GB file</li>
+            <li><strong>D365 ERP:</strong> Dataverse + Operations pools merged, +20 GB across the board</li>
+          </ul>
+          <p className="text-sky-600">No action required—capacity updates automatically in Power Platform Admin Center.</p>
+          <p className="pt-1">
+            <a 
+              href="https://licensing.guide/blog/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-sky-600 hover:text-sky-800 underline font-medium"
+            >
+              Read The Licensing Guide blog for latest info →
+            </a>
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function DataverseCapacityCalculator() {
   const [licenses, setLicenses] = useState({ 'sales-ent': 10 });
   const [addons, setAddons] = useState({ db_gb: 0, file_gb: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(true);
+  // Track which tier groups are expanded - default to first tier expanded on desktop
+  const [expandedTiers, setExpandedTiers] = useState({ 'erp-premium': true });
   
-  // Track first visit using localStorage
+  // Track first visit and what's new dismissal using localStorage
   useEffect(() => {
     try {
       const hasVisited = localStorage.getItem('dataverse-calc-visited');
@@ -519,10 +593,28 @@ export default function DataverseCapacityCalculator() {
         setSidebarOpen(true);
         localStorage.setItem('dataverse-calc-visited', 'true');
       }
+      
+      const whatsNewDismissed = localStorage.getItem('dataverse-calc-whats-new-dec2025-dismissed');
+      if (whatsNewDismissed) {
+        setShowWhatsNew(false);
+      }
     } catch (e) {
       // localStorage may not be available in incognito mode or when disabled
     }
   }, []);
+  
+  const handleDismissWhatsNew = () => {
+    setShowWhatsNew(false);
+    try {
+      localStorage.setItem('dataverse-calc-whats-new-dec2025-dismissed', 'true');
+    } catch (e) {
+      // localStorage may not be available
+    }
+  };
+  
+  const handleToggleTier = (tierId) => {
+    setExpandedTiers(prev => ({ ...prev, [tierId]: !prev[tierId] }));
+  };
   
   // Close sidebar on Escape key press
   useEffect(() => {
@@ -678,6 +770,13 @@ export default function DataverseCapacityCalculator() {
           <p><strong>Add-ons:</strong> Purchased separately in 1 GB increments, pooled tenant-wide.</p>
         </InfoPanel>
         
+        {/* What's New December 2025 announcement - only shown on mobile in sidebar */}
+        {showWhatsNew && (
+          <div className="lg:hidden">
+            <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+          </div>
+        )}
+        
         <div className="space-y-3">
           {PRODUCT_TIERS.map(tier => (
             <TierGroup
@@ -686,6 +785,8 @@ export default function DataverseCapacityCalculator() {
               licenses={licenses}
               onLicenseChange={handleLicenseChange}
               isHighest={calculation.highestTier?.id === tier.id}
+              isExpanded={expandedTiers[tier.id] || false}
+              onToggle={() => handleToggleTier(tier.id)}
             />
           ))}
         </div>
@@ -757,6 +858,13 @@ export default function DataverseCapacityCalculator() {
       {/* Right Panel - Capacity Metrics */}
       <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
         <div className="max-w-xl">
+          {/* What's New December 2025 announcement - shown on desktop in right panel */}
+          {showWhatsNew && (
+            <div className="hidden lg:block mb-6">
+              <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+            </div>
+          )}
+          
           {calculation.highestTier ? (
             <>
               <div className="mb-8">
@@ -861,6 +969,11 @@ export default function DataverseCapacityCalculator() {
             Per-user accrual stacks across all products. Log capacity (2-3 GB) not shown. 
             Process Mining has a 100 GB tenant cap on DB accrual.
             Verify actual entitlements in Power Platform Admin Center.
+          </div>
+          
+          {/* Version indicator */}
+          <div className="mt-4 text-center text-xs text-gray-400">
+            Capacity values: December 2025
           </div>
         </div>
       </div>
