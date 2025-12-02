@@ -505,7 +505,7 @@ const InfoPanel = ({ title, children, defaultOpen = false }) => {
 };
 
 export default function DataverseCapacityCalculator() {
-  const [licenses, setLicenses] = useState({});
+  const [licenses, setLicenses] = useState({ 'sales-ent': 10 });
   const [addons, setAddons] = useState({ db_gb: 0, file_gb: 0 });
   
   const handleLicenseChange = (skuId, value) => {
@@ -597,8 +597,10 @@ export default function DataverseCapacityCalculator() {
     <div className="h-screen bg-gray-100 flex flex-col md:flex-row">
       {/* Left Panel - Product Selection */}
       <div className="w-full md:w-80 bg-white border-r border-gray-200 overflow-y-auto p-4 flex-shrink-0">
-        <h1 className="text-lg font-bold text-gray-900 mb-1">Dataverse Capacity</h1>
-        <p className="text-xs text-gray-500 mb-4">December 2025 values</p>
+        <h1 className="text-lg font-bold text-gray-900 mb-1">Dataverse Capacity Calculator</h1>
+        <p className="text-xs text-gray-500 mb-4">
+          Brought to you by <a href="https://licensing.guide" target="_blank" rel="noopener noreferrer nofollow" className="text-blue-600 hover:underline">licensing.guide</a>
+        </p>
         
         {/* Educational info panel */}
         <InfoPanel title="How Capacity Works">
