@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 // SKU definitions with capacity values (December 2025)
 // Using new data model from specs.md
@@ -507,6 +507,33 @@ const InfoPanel = ({ title, children, defaultOpen = false }) => {
 export default function DataverseCapacityCalculator() {
   const [licenses, setLicenses] = useState({ 'sales-ent': 10 });
   const [addons, setAddons] = useState({ db_gb: 0, file_gb: 0 });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Track first visit using localStorage
+  useEffect(() => {
+    try {
+      const hasVisited = localStorage.getItem('dataverse-calc-visited');
+      if (!hasVisited) {
+        setShowOnboarding(true);
+        setSidebarOpen(true);
+        localStorage.setItem('dataverse-calc-visited', 'true');
+      }
+    } catch (e) {
+      // localStorage may not be available in incognito mode or when disabled
+    }
+  }, []);
+  
+  // Close sidebar on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen]);
   
   const handleLicenseChange = (skuId, value) => {
     setLicenses(prev => ({ ...prev, [skuId]: value }));
@@ -594,9 +621,50 @@ export default function DataverseCapacityCalculator() {
   const maxFile = Math.max(150, calculation.fileTotal * 1.1);
   
   return (
-    <div className="h-screen bg-gray-100 flex flex-col md:flex-row">
-      {/* Left Panel - Product Selection */}
-      <div className="w-full md:w-80 bg-white border-r border-gray-200 overflow-y-auto p-4 flex-shrink-0">
+    <div className="h-screen bg-gray-100 flex flex-col lg:flex-row relative">
+      {/* Mobile Backdrop Overlay */}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${
+          sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden={!sidebarOpen}
+        role="button"
+        tabIndex={sidebarOpen ? 0 : -1}
+        aria-label="Close sidebar"
+      />
+      
+      {/* Left Panel - Product Selection (Collapsible Sidebar on Mobile) */}
+      <div 
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+          w-80 bg-white border-r border-gray-200 
+          overflow-y-auto p-4 flex-shrink-0 h-full
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* First-visit onboarding banner */}
+        {showOnboarding && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-sm text-blue-800 font-medium">👋 Welcome!</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Tap products to add them, then close this panel to see your capacity results.
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowOnboarding(false)}
+                className="text-blue-400 hover:text-blue-600 text-lg leading-none"
+                aria-label="Close onboarding banner"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+        
         <h1 className="text-lg font-bold text-gray-900 mb-1">Dataverse Capacity Calculator</h1>
         <p className="text-xs text-gray-500 mb-4">
           Brought to you by <a href="https://licensing.guide" target="_blank" rel="noopener noreferrer nofollow" className="text-blue-600 hover:underline">licensing.guide</a>
@@ -664,8 +732,30 @@ export default function DataverseCapacityCalculator() {
         </div>
       </div>
       
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed bottom-6 left-6 z-50 lg:hidden flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200"
+      >
+        {sidebarOpen ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="text-sm font-medium">Close</span>
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            <span className="text-sm font-medium">Products</span>
+          </>
+        )}
+      </button>
+      
       {/* Right Panel - Capacity Metrics */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
         <div className="max-w-xl">
           {calculation.highestTier ? (
             <>
@@ -756,8 +846,11 @@ export default function DataverseCapacityCalculator() {
           ) : (
             <div className="flex items-center justify-center h-64 text-gray-400">
               <div className="text-center">
-                <div className="text-4xl mb-2">←</div>
+                <div className="text-4xl mb-2 hidden lg:block">←</div>
+                <div className="text-4xl mb-2 lg:hidden">📋</div>
                 <p>Select products to calculate capacity</p>
+                <p className="text-sm mt-2 hidden lg:block">Choose from the product tiers on the left</p>
+                <p className="text-sm mt-2 lg:hidden">Tap the menu button below to select products</p>
               </div>
             </div>
           )}
