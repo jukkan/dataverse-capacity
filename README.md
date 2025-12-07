@@ -2,7 +2,11 @@
 
 An interactive web-based calculator for estimating Microsoft Dataverse capacity based on Power Platform and Dynamics 365 product licenses.
 
-![Dataverse Capacity Calculator](https://github.com/user-attachments/assets/d550ea40-cea4-4331-8f40-860be6de91a8)
+[**OPEN CALCULATOR**](https://dataverse.licensing.guide/)
+
+[Read intro blog post](https://licensing.guide/december-2025-dataverse-default-capacity-changes-illustrated/)
+
+![Dataverse Capacity Calculator](https://github.com/user-attachments/assets/95933195-0fc4-4b56-b3f2-2a84013a2408)
 
 ## Features
 
@@ -16,8 +20,6 @@ An interactive web-based calculator for estimating Microsoft Dataverse capacity 
 - **Print-friendly**: Clean output for printing or sharing
 
 ## Capacity Calculation
-
-![Calculator with data](https://github.com/user-attachments/assets/b75e322c-2dfa-4d69-bdf7-a646e66aa403)
 
 ### How Capacity Works
 
@@ -65,7 +67,7 @@ npm run preview
 
 The site automatically deploys to GitHub Pages when changes are pushed to the `main` branch via GitHub Actions.
 
-**Live Site**: [https://jukkan.github.io/dataverse-capacity/](https://jukkan.github.io/dataverse-capacity/)
+**Live Site**: [https://dataverse.licensing.guide/](https://dataverse.licensing.guide/)
 
 ## Disclaimer
 
@@ -73,6 +75,4 @@ This calculator provides estimates based on publicly available licensing informa
 
 ## Resources
 
-- [Dataverse Capacity Documentation](https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage)
-- [Storage Management Guide](https://learn.microsoft.com/en-us/dynamics365/fin-ops-core/dev-itpro/get-started/storage-management)
-- [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/)
+- [Microsoft licensing guides and docs](https://licensing.guide/resources/)
