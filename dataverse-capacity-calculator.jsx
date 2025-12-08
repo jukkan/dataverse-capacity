@@ -203,8 +203,8 @@ const SKUS = [
     license_type: 'PerApp',
     eligible_for_default: true,
     default: { db_gb: 15, file_gb: 20 },
-    accrual: { db_gb: 0, file_gb: 0 },
-    accrues_capacity: false
+    accrual: { db_gb: 0.05, file_gb: 0.4 },
+    accrues_capacity: true
   },
   {
     id: 'pautom-process',
@@ -432,9 +432,10 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest, isExpanded, onT
   );
 };
 
-const CapacityGauge = ({ label, defaultValue, accrualValue, addonValue = 0, total, maxValue, color, tooltip }) => {
+const CapacityGauge = ({ label, defaultValue, perUserAccrualValue = 0, perAppAccrualValue = 0, addonValue = 0, total, maxValue, color, tooltip }) => {
   const defaultPct = (defaultValue / maxValue) * 100;
-  const accrualPct = (accrualValue / maxValue) * 100;
+  const perUserAccrualPct = (perUserAccrualValue / maxValue) * 100;
+  const perAppAccrualPct = (perAppAccrualValue / maxValue) * 100;
   const addonPct = (addonValue / maxValue) * 100;
   
   return (
@@ -457,12 +458,20 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, addonValue = 0, tota
             {defaultPct > 15 && formatCapacity(defaultValue)}
           </div>
         )}
-        {accrualValue > 0 && (
+        {perUserAccrualValue > 0 && (
           <div 
             className="bg-gray-400 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
-            style={{ width: `${accrualPct}%` }}
+            style={{ width: `${perUserAccrualPct}%` }}
           >
-            {accrualPct > 15 && `+${formatCapacity(accrualValue)}`}
+            {perUserAccrualPct > 15 && `+${formatCapacity(perUserAccrualValue)}`}
+          </div>
+        )}
+        {perAppAccrualValue > 0 && (
+          <div 
+            className="bg-green-600 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${perAppAccrualPct}%` }}
+          >
+            {perAppAccrualPct > 15 && `+${formatCapacity(perAppAccrualValue)}`}
           </div>
         )}
         {addonValue > 0 && (
@@ -481,10 +490,18 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, addonValue = 0, tota
           <div className={`w-3 h-3 rounded ${color}`}></div>
           <span>Default: {formatCapacity(defaultValue)}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-gray-400"></div>
-          <span>Per-user: {formatCapacity(accrualValue)}</span>
-        </div>
+        {perUserAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-gray-400"></div>
+            <span>Per-user: {formatCapacity(perUserAccrualValue)}</span>
+          </div>
+        )}
+        {perAppAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-green-600"></div>
+            <span>Per-app: {formatCapacity(perAppAccrualValue)}</span>
+          </div>
+        )}
         {addonValue > 0 && (
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-amber-500"></div>
@@ -638,8 +655,10 @@ export default function DataverseCapacityCalculator() {
   
   const calculation = useMemo(() => {
     let highestTier = null;
-    let dbAccrual = 0;
-    let fileAccrual = 0;
+    let dbPerUserAccrual = 0;
+    let filePerUserAccrual = 0;
+    let dbPerAppAccrual = 0;
+    let filePerAppAccrual = 0;
     const skuUsage = {}; // Track usage for tenant caps
     const breakdown = []; // Per-SKU breakdown for display
     
@@ -671,8 +690,16 @@ export default function DataverseCapacityCalculator() {
             }
             
             if (addDb > 0 || addFile > 0) {
-              dbAccrual += addDb;
-              fileAccrual += addFile;
+              // Separate per-app licenses from per-user licenses
+              const isPerApp = sku.license_type === 'PerApp';
+              if (isPerApp) {
+                dbPerAppAccrual += addDb;
+                filePerAppAccrual += addFile;
+              } else {
+                dbPerUserAccrual += addDb;
+                filePerUserAccrual += addFile;
+              }
+              
               breakdown.push({
                 sku,
                 count,
@@ -699,12 +726,14 @@ export default function DataverseCapacityCalculator() {
       highestTier,
       dbDefault,
       fileDefault,
-      dbAccrual,
-      fileAccrual,
+      dbPerUserAccrual,
+      filePerUserAccrual,
+      dbPerAppAccrual,
+      filePerAppAccrual,
       dbAddon,
       fileAddon,
-      dbTotal: dbDefault + dbAccrual + dbAddon,
-      fileTotal: fileDefault + fileAccrual + fileAddon,
+      dbTotal: dbDefault + dbPerUserAccrual + dbPerAppAccrual + dbAddon,
+      fileTotal: fileDefault + filePerUserAccrual + filePerAppAccrual + fileAddon,
       breakdown
     };
   }, [licenses, addons]);
@@ -878,7 +907,8 @@ export default function DataverseCapacityCalculator() {
               <CapacityGauge
                 label="Database Capacity"
                 defaultValue={calculation.dbDefault}
-                accrualValue={calculation.dbAccrual}
+                perUserAccrualValue={calculation.dbPerUserAccrual}
+                perAppAccrualValue={calculation.dbPerAppAccrual}
                 addonValue={calculation.dbAddon}
                 total={calculation.dbTotal}
                 maxValue={maxDb}
@@ -889,7 +919,8 @@ export default function DataverseCapacityCalculator() {
               <CapacityGauge
                 label="File Capacity"
                 defaultValue={calculation.fileDefault}
-                accrualValue={calculation.fileAccrual}
+                perUserAccrualValue={calculation.filePerUserAccrual}
+                perAppAccrualValue={calculation.filePerAppAccrual}
                 addonValue={calculation.fileAddon}
                 total={calculation.fileTotal}
                 maxValue={maxFile}
@@ -929,7 +960,7 @@ export default function DataverseCapacityCalculator() {
                           )}
                         </td>
                         <td className="py-2 px-4 text-right text-gray-700">+{db.toFixed(1)} GB</td>
-                        <td className="py-2 px-4 text-right text-gray-700">+{file.toFixed(0)} GB</td>
+                        <td className="py-2 px-4 text-right text-gray-700">+{file.toFixed(1)} GB</td>
                       </tr>
                     ))}
                     {(calculation.dbAddon > 0 || calculation.fileAddon > 0) && (
