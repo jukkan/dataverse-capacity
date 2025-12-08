@@ -69,7 +69,7 @@ const PRODUCT_TIERS = [
     priority: 5,
     description: 'Per-app and process-based licenses',
     products: [
-      { id: 'pa-perapp', name: 'Power Apps per app', dbPerApp: 0.05, filePerApp: 0.4, tooltip: 'Power Apps per app - 50 MB DB + 400 MB File per app license' },
+      { id: 'pa-perapp', name: 'Power Apps per app', dbPerUser: 0, filePerUser: 0, noAccrual: true, tooltip: 'Power Apps per app - No per-user capacity accrual' },
       { id: 'pautom-process', name: 'Power Automate Process', dbPerUser: 0, filePerUser: 0, noAccrual: true, tooltip: 'Power Automate Process - No per-user capacity accrual' },
       { id: 'copilot-studio', name: 'Copilot Studio', dbPerUser: 0, filePerUser: 0, noAccrual: true, tooltip: 'Copilot Studio - No per-user capacity accrual' },
     ]
@@ -101,11 +101,7 @@ const Tooltip = ({ text, children }) => (
 );
 
 const ProductRow = ({ product, value, onChange }) => {
-  const hasAccrual = !product.noAccrual && (
-    (product.dbPerUser > 0 || product.filePerUser > 0) ||
-    (product.dbPerApp > 0 || product.filePerApp > 0)
-  );
-  const isPerApp = product.dbPerApp !== undefined || product.filePerApp !== undefined;
+  const hasAccrual = !product.noAccrual && (product.dbPerUser > 0 || product.filePerUser > 0);
   const isActive = value > 0;
   
   return (
@@ -132,7 +128,7 @@ const ProductRow = ({ product, value, onChange }) => {
               onChange={(e) => onChange(Math.max(1, parseInt(e.target.value) || 1))}
               className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <span className="text-xs text-gray-400">{isPerApp ? 'apps' : 'users'}</span>
+            <span className="text-xs text-gray-400">users</span>
           </div>
         )}
         {isActive && product.noAccrual && (
@@ -187,10 +183,9 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
   );
 };
 
-const CapacityGauge = ({ label, defaultValue, accrualValue, perAppAccrualValue, total, maxValue, color, icon }) => {
+const CapacityGauge = ({ label, defaultValue, accrualValue, total, maxValue, color, icon }) => {
   const defaultPct = (defaultValue / maxValue) * 100;
   const accrualPct = (accrualValue / maxValue) * 100;
-  const perAppAccrualPct = (perAppAccrualValue / maxValue) * 100;
   
   return (
     <div className="mb-8 fade-in">
@@ -220,14 +215,6 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, perAppAccrualValue, 
             {accrualPct > 15 && `+${formatCapacity(accrualValue)}`}
           </div>
         )}
-        {perAppAccrualValue > 0 && (
-          <div 
-            className="bg-amber-600 flex items-center justify-center text-white text-sm font-medium capacity-bar"
-            style={{ width: `${perAppAccrualPct}%` }}
-          >
-            {perAppAccrualPct > 15 && `+${formatCapacity(perAppAccrualValue)}`}
-          </div>
-        )}
       </div>
       
       {/* Legend */}
@@ -236,18 +223,10 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, perAppAccrualValue, 
           <div className={`w-4 h-4 rounded ${color}`}></div>
           <span>Default: {formatCapacity(defaultValue)}</span>
         </div>
-        {accrualValue > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-gray-500"></div>
-            <span>Per-user: {formatCapacity(accrualValue)}</span>
-          </div>
-        )}
-        {perAppAccrualValue > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-amber-600"></div>
-            <span>Per-app: {formatCapacity(perAppAccrualValue)}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-gray-500"></div>
+          <span>Per-user: {formatCapacity(accrualValue)}</span>
+        </div>
       </div>
     </div>
   );
@@ -365,8 +344,6 @@ export default function App() {
     let highestTier = null;
     let dbAccrual = 0;
     let fileAccrual = 0;
-    let dbPerAppAccrual = 0;
-    let filePerAppAccrual = 0;
     
     for (const tier of PRODUCT_TIERS) {
       for (const product of tier.products) {
@@ -375,20 +352,8 @@ export default function App() {
           if (!highestTier || tier.priority < highestTier.priority) {
             highestTier = tier;
           }
-          // Handle per-user accrual
-          if (product.dbPerUser !== undefined) {
-            dbAccrual += product.dbPerUser * count;
-          }
-          if (product.filePerUser !== undefined) {
-            fileAccrual += product.filePerUser * count;
-          }
-          // Handle per-app accrual
-          if (product.dbPerApp !== undefined) {
-            dbPerAppAccrual += product.dbPerApp * count;
-          }
-          if (product.filePerApp !== undefined) {
-            filePerAppAccrual += product.filePerApp * count;
-          }
+          dbAccrual += product.dbPerUser * count;
+          fileAccrual += product.filePerUser * count;
         }
       }
     }
@@ -402,10 +367,8 @@ export default function App() {
       fileDefault,
       dbAccrual,
       fileAccrual,
-      dbPerAppAccrual,
-      filePerAppAccrual,
-      dbTotal: dbDefault + dbAccrual + dbPerAppAccrual,
-      fileTotal: fileDefault + fileAccrual + filePerAppAccrual,
+      dbTotal: dbDefault + dbAccrual,
+      fileTotal: fileDefault + fileAccrual,
     };
   }, [licenses]);
   
@@ -463,7 +426,6 @@ export default function App() {
                   label="Database Capacity"
                   defaultValue={calculation.dbDefault}
                   accrualValue={calculation.dbAccrual}
-                  perAppAccrualValue={calculation.dbPerAppAccrual}
                   total={calculation.dbTotal}
                   maxValue={maxDb}
                   color={tierColors[calculation.highestTier.id].bg}
@@ -474,7 +436,6 @@ export default function App() {
                   label="File Capacity"
                   defaultValue={calculation.fileDefault}
                   accrualValue={calculation.fileAccrual}
-                  perAppAccrualValue={calculation.filePerAppAccrual}
                   total={calculation.fileTotal}
                   maxValue={maxFile}
                   color={tierColors[calculation.highestTier.id].bg}
@@ -504,17 +465,14 @@ export default function App() {
                         {Object.entries(licenses).filter(([, v]) => v > 0).map(([productId, count]) => {
                           const product = PRODUCT_TIERS.flatMap(t => t.products).find(p => p.id === productId);
                           if (!product || product.noAccrual) return null;
-                          
-                          // Calculate capacity based on whether it's per-user or per-app
-                          const db = (product.dbPerUser !== undefined ? product.dbPerUser : product.dbPerApp || 0) * count;
-                          const file = (product.filePerUser !== undefined ? product.filePerUser : product.filePerApp || 0) * count;
-                          
+                          const db = product.dbPerUser * count;
+                          const file = product.filePerUser * count;
                           if (db === 0 && file === 0) return null;
                           return (
                             <tr key={productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                               <td className="py-3 px-4 text-gray-600">{product.name} × {count}</td>
                               <td className="py-3 px-4 text-right text-gray-700">+{db.toFixed(1)} GB</td>
-                              <td className="py-3 px-4 text-right text-gray-700">+{file.toFixed(1)} GB</td>
+                              <td className="py-3 px-4 text-right text-gray-700">+{file.toFixed(0)} GB</td>
                             </tr>
                           );
                         })}
