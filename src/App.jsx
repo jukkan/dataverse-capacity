@@ -74,6 +74,24 @@ const PRODUCT_TIERS = [
       { id: 'copilot-studio', name: 'Copilot Studio', dbPerUser: 0, filePerUser: 0, noAccrual: true, tooltip: 'Copilot Studio - No per-user capacity accrual' },
     ]
   },
+  {
+    id: 'customer-insights',
+    name: 'D365 Customer Insights',
+    dbDefault: 45,
+    fileDefault: 60,
+    priority: 6,
+    description: 'Customer Insights base license and capacity packs',
+    defaultCollapsed: true,
+    products: [
+      { id: 'ci-base', name: 'Customer Insights (Base or Attach)', dbPerUser: 0, filePerUser: 0, noAccrual: true, isTenantLicense: true, tooltip: 'Tenant-level license. Capacity applied once per tenant - 45 GB DB + 60 GB File' },
+      { id: 'ci-interacted-t1', name: 'Interacted People Pack T1 (5K)', dbPerUser: 1, filePerUser: 2, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Interacted People Pack T1 - 1 GB DB + 2 GB File per pack' },
+      { id: 'ci-interacted-t2', name: 'Interacted People Pack T2 (10K)', dbPerUser: 1, filePerUser: 2, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Interacted People Pack T2 - 1 GB DB + 2 GB File per pack' },
+      { id: 'ci-interacted-t3', name: 'Interacted People Pack T3 (50K)', dbPerUser: 1, filePerUser: 2, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Interacted People Pack T3 - 1 GB DB + 2 GB File per pack' },
+      { id: 'ci-unified-t1', name: 'Unified People Pack T1 (100K)', dbPerUser: 15, filePerUser: 20, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Unified People Pack T1 - 15 GB DB + 20 GB File per pack' },
+      { id: 'ci-unified-t2', name: 'Unified People Pack T2 (100K)', dbPerUser: 15, filePerUser: 20, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Unified People Pack T2 - 15 GB DB + 20 GB File per pack' },
+      { id: 'ci-unified-t3', name: 'Unified People Pack T3 (100K)', dbPerUser: 15, filePerUser: 20, isPack: true, requiresBase: 'ci-base', tooltip: 'Customer Insights Unified People Pack T3 - 15 GB DB + 20 GB File per pack' },
+    ]
+  },
 ];
 
 const tierColors = {
@@ -82,6 +100,7 @@ const tierColors = {
   'crm': { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', hover: 'hover:bg-blue-50' },
   'pp-premium': { bg: 'bg-teal-500', light: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-300', hover: 'hover:bg-teal-50' },
   'pp-workload': { bg: 'bg-green-500', light: 'bg-green-100', text: 'text-green-700', border: 'border-green-300', hover: 'hover:bg-green-50' },
+  'customer-insights': { bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', hover: 'hover:bg-orange-50' },
 };
 
 const formatCapacity = (value) => {
@@ -100,25 +119,29 @@ const Tooltip = ({ text, children }) => (
   </div>
 );
 
-const ProductRow = ({ product, value, onChange }) => {
+const ProductRow = ({ product, value, onChange, licenses }) => {
   const hasAccrual = !product.noAccrual && (product.dbPerUser > 0 || product.filePerUser > 0);
   const isActive = value > 0;
+  const isDisabled = product.requiresBase && !licenses[product.requiresBase];
+  const isPack = product.isPack;
+  const isTenantLicense = product.isTenantLicense;
   
   return (
-    <div className={`py-2 transition-all duration-200 ${isActive ? 'bg-gray-50 -mx-2 px-2 rounded-lg' : ''}`}>
+    <div className={`py-2 transition-all duration-200 ${isActive ? 'bg-gray-50 -mx-2 px-2 rounded-lg' : ''} ${isDisabled ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
           checked={isActive}
           onChange={(e) => onChange(e.target.checked ? 1 : 0)}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+          disabled={isDisabled}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
         />
-        <Tooltip text={product.tooltip}>
+        <Tooltip text={isDisabled ? `Enable ${product.requiresBase} to use this pack` : product.tooltip}>
           <span className={`text-sm flex-1 cursor-help ${isActive ? 'font-medium text-gray-900' : 'text-gray-600'} hover:text-blue-600`}>
             {product.name}
           </span>
         </Tooltip>
-        {isActive && hasAccrual && (
+        {isActive && hasAccrual && !isTenantLicense && (
           <div className="flex items-center gap-1">
             <input
               type="number"
@@ -128,14 +151,16 @@ const ProductRow = ({ product, value, onChange }) => {
               onChange={(e) => onChange(Math.max(1, parseInt(e.target.value) || 1))}
               className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <span className="text-xs text-gray-400">users</span>
+            <span className="text-xs text-gray-400">{isPack ? 'packs' : 'users'}</span>
           </div>
         )}
-        {isActive && product.noAccrual && (
-          <span className="text-xs text-gray-400 italic bg-gray-100 px-2 py-0.5 rounded">no accrual</span>
+        {isActive && (product.noAccrual || isTenantLicense) && (
+          <span className="text-xs text-gray-400 italic bg-gray-100 px-2 py-0.5 rounded">
+            {isTenantLicense ? 'tenant-level' : 'no accrual'}
+          </span>
         )}
       </div>
-      {isActive && hasAccrual && (
+      {isActive && hasAccrual && !isTenantLicense && (
         <input
           type="range"
           min="1"
@@ -151,10 +176,14 @@ const ProductRow = ({ product, value, onChange }) => {
 
 const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
   const colors = tierColors[tier.id];
+  const [isCollapsed, setIsCollapsed] = useState(tier.defaultCollapsed || false);
   
   return (
     <div className={`rounded-xl border-2 transition-all duration-300 ${isHighest ? colors.border + ' ' + colors.light + ' shadow-md' : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'} overflow-hidden`}>
-      <div className={`px-4 py-3 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50'} flex items-center justify-between`}>
+      <button 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={`w-full px-4 py-3 ${isHighest ? colors.bg + ' text-white' : 'bg-gray-50'} flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity`}
+      >
         <div className="flex items-center gap-2">
           <Tooltip text={tier.description}>
             <span className={`font-semibold text-sm cursor-help ${isHighest ? 'text-white' : 'text-gray-700'}`}>
@@ -165,27 +194,36 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full pulse-subtle">★ Active</span>
           )}
         </div>
-        <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
-          {tier.dbDefault}GB / {tier.fileDefault}GB
-        </span>
-      </div>
-      <div className="px-4 py-3 space-y-1">
-        {tier.products.map(product => (
-          <ProductRow
-            key={product.id}
-            product={product}
-            value={licenses[product.id] || 0}
-            onChange={(val) => onLicenseChange(product.id, val)}
-          />
-        ))}
-      </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs ${isHighest ? 'text-white/80' : 'text-gray-500'}`}>
+            {tier.dbDefault}GB / {tier.fileDefault}GB
+          </span>
+          <span className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'} ${isHighest ? 'text-white' : 'text-gray-500'}`}>
+            ▼
+          </span>
+        </div>
+      </button>
+      {!isCollapsed && (
+        <div className="px-4 py-3 space-y-1">
+          {tier.products.map(product => (
+            <ProductRow
+              key={product.id}
+              product={product}
+              value={licenses[product.id] || 0}
+              onChange={(val) => onLicenseChange(product.id, val)}
+              licenses={licenses}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-const CapacityGauge = ({ label, defaultValue, accrualValue, total, maxValue, color, icon }) => {
+const CapacityGauge = ({ label, defaultValue, accrualValue, packValue, total, maxValue, color, icon }) => {
   const defaultPct = (defaultValue / maxValue) * 100;
   const accrualPct = (accrualValue / maxValue) * 100;
+  const packPct = (packValue / maxValue) * 100;
   
   return (
     <div className="mb-8 fade-in">
@@ -215,10 +253,18 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, total, maxValue, col
             {accrualPct > 15 && `+${formatCapacity(accrualValue)}`}
           </div>
         )}
+        {packValue > 0 && (
+          <div 
+            className="bg-amber-500 flex items-center justify-center text-white text-sm font-medium capacity-bar"
+            style={{ width: `${packPct}%` }}
+          >
+            {packPct > 15 && `+${formatCapacity(packValue)}`}
+          </div>
+        )}
       </div>
       
       {/* Legend */}
-      <div className="flex gap-6 mt-3 text-sm text-gray-600">
+      <div className="flex gap-6 mt-3 text-sm text-gray-600 flex-wrap">
         <div className="flex items-center gap-2">
           <div className={`w-4 h-4 rounded ${color}`}></div>
           <span>Default: {formatCapacity(defaultValue)}</span>
@@ -227,6 +273,12 @@ const CapacityGauge = ({ label, defaultValue, accrualValue, total, maxValue, col
           <div className="w-4 h-4 rounded bg-gray-500"></div>
           <span>Per-user: {formatCapacity(accrualValue)}</span>
         </div>
+        {packValue > 0 && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-amber-500"></div>
+            <span>Per-pack: {formatCapacity(packValue)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -344,6 +396,12 @@ export default function App() {
     let highestTier = null;
     let dbAccrual = 0;
     let fileAccrual = 0;
+    let dbPackAccrual = 0;
+    let filePackAccrual = 0;
+    const breakdown = [];
+    
+    // Check if Customer Insights base is licensed
+    const hasCustomerInsightsBase = (licenses['ci-base'] || 0) > 0;
     
     for (const tier of PRODUCT_TIERS) {
       for (const product of tier.products) {
@@ -352,8 +410,35 @@ export default function App() {
           if (!highestTier || tier.priority < highestTier.priority) {
             highestTier = tier;
           }
-          dbAccrual += product.dbPerUser * count;
-          fileAccrual += product.filePerUser * count;
+          
+          // Skip CI pack capacity if CI base is not licensed
+          if (product.requiresBase === 'ci-base' && !hasCustomerInsightsBase) {
+            continue;
+          }
+          
+          const dbContribution = product.dbPerUser * count;
+          const fileContribution = product.filePerUser * count;
+          
+          // Separate pack accrual from user accrual
+          if (product.isPack) {
+            dbPackAccrual += dbContribution;
+            filePackAccrual += fileContribution;
+          } else {
+            dbAccrual += dbContribution;
+            fileAccrual += fileContribution;
+          }
+          
+          // Add to breakdown if there's accrual
+          if (!product.noAccrual && !product.isTenantLicense && (dbContribution > 0 || fileContribution > 0)) {
+            breakdown.push({
+              productId: product.id,
+              name: product.name,
+              count,
+              dbContribution,
+              fileContribution,
+              isPack: product.isPack || false,
+            });
+          }
         }
       }
     }
@@ -367,8 +452,11 @@ export default function App() {
       fileDefault,
       dbAccrual,
       fileAccrual,
-      dbTotal: dbDefault + dbAccrual,
-      fileTotal: fileDefault + fileAccrual,
+      dbPackAccrual,
+      filePackAccrual,
+      dbTotal: dbDefault + dbAccrual + dbPackAccrual,
+      fileTotal: fileDefault + fileAccrual + filePackAccrual,
+      breakdown,
     };
   }, [licenses]);
   
@@ -426,6 +514,7 @@ export default function App() {
                   label="Database Capacity"
                   defaultValue={calculation.dbDefault}
                   accrualValue={calculation.dbAccrual}
+                  packValue={calculation.dbPackAccrual}
                   total={calculation.dbTotal}
                   maxValue={maxDb}
                   color={tierColors[calculation.highestTier.id].bg}
@@ -436,6 +525,7 @@ export default function App() {
                   label="File Capacity"
                   defaultValue={calculation.fileDefault}
                   accrualValue={calculation.fileAccrual}
+                  packValue={calculation.filePackAccrual}
                   total={calculation.fileTotal}
                   maxValue={maxFile}
                   color={tierColors[calculation.highestTier.id].bg}
@@ -462,20 +552,29 @@ export default function App() {
                           <td className="py-3 px-4 text-right text-gray-900">{calculation.dbDefault} GB</td>
                           <td className="py-3 px-4 text-right text-gray-900">{calculation.fileDefault} GB</td>
                         </tr>
-                        {Object.entries(licenses).filter(([, v]) => v > 0).map(([productId, count]) => {
-                          const product = PRODUCT_TIERS.flatMap(t => t.products).find(p => p.id === productId);
-                          if (!product || product.noAccrual) return null;
-                          const db = product.dbPerUser * count;
-                          const file = product.filePerUser * count;
-                          if (db === 0 && file === 0) return null;
-                          return (
-                            <tr key={productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                              <td className="py-3 px-4 text-gray-600">{product.name} × {count}</td>
-                              <td className="py-3 px-4 text-right text-gray-700">+{db.toFixed(1)} GB</td>
-                              <td className="py-3 px-4 text-right text-gray-700">+{file.toFixed(0)} GB</td>
+                        {calculation.breakdown.filter(item => !item.isPack).map(item => (
+                          <tr key={item.productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td className="py-3 px-4 text-gray-600">{item.name} × {item.count}</td>
+                            <td className="py-3 px-4 text-right text-gray-700">+{item.dbContribution.toFixed(1)} GB</td>
+                            <td className="py-3 px-4 text-right text-gray-700">+{item.fileContribution.toFixed(0)} GB</td>
+                          </tr>
+                        ))}
+                        {calculation.breakdown.some(item => item.isPack) && (
+                          <>
+                            <tr className="bg-amber-50">
+                              <td colSpan="3" className="py-2 px-4 text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                                Per-pack contributions (add-on capacity)
+                              </td>
                             </tr>
-                          );
-                        })}
+                            {calculation.breakdown.filter(item => item.isPack).map(item => (
+                              <tr key={item.productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td className="py-3 px-4 text-gray-600">{item.name} × {item.count}</td>
+                                <td className="py-3 px-4 text-right text-gray-700">+{item.dbContribution.toFixed(1)} GB</td>
+                                <td className="py-3 px-4 text-right text-gray-700">+{item.fileContribution.toFixed(0)} GB</td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
                         <tr className="bg-gradient-to-r from-gray-50 to-gray-100 font-semibold">
                           <td className="py-3 px-4 text-gray-900">Total Capacity</td>
                           <td className="py-3 px-4 text-right text-gray-900">{formatCapacity(calculation.dbTotal)}</td>
