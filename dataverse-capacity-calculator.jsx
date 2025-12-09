@@ -240,6 +240,90 @@ const SKUS = [
     accrual: { db_gb: 10, file_gb: 50 },
     accrues_capacity: true,
     tenant_cap_db_gb: 100
+  },
+  // D365 Customer Insights
+  {
+    id: 'ci-base',
+    name: 'Customer Insights (Base or Attach)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'Base',
+    eligible_for_default: true,
+    default: { db_gb: 45, file_gb: 60 },
+    accrual: { db_gb: 0, file_gb: 0 },
+    accrues_capacity: false
+  },
+  {
+    id: 'ci-interacted-t1',
+    name: 'Interacted People Pack T1 (5K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 1, file_gb: 2 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
+  },
+  {
+    id: 'ci-interacted-t2',
+    name: 'Interacted People Pack T2 (10K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 1, file_gb: 2 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
+  },
+  {
+    id: 'ci-interacted-t3',
+    name: 'Interacted People Pack T3 (50K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 1, file_gb: 2 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
+  },
+  {
+    id: 'ci-unified-t1',
+    name: 'Unified People Pack T1 (100K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 15, file_gb: 20 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
+  },
+  {
+    id: 'ci-unified-t2',
+    name: 'Unified People Pack T2 (100K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 15, file_gb: 20 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
+  },
+  {
+    id: 'ci-unified-t3',
+    name: 'Unified People Pack T3 (100K)',
+    family: 'Dynamics365',
+    product_group: 'CustomerInsights',
+    license_type: 'CapacityPack',
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 15, file_gb: 20 },
+    accrues_capacity: true,
+    requires_base: 'ci-base'
   }
 ];
 
@@ -275,6 +359,13 @@ const PRODUCT_TIERS = [
     priority: 5,
     skuIds: ['pa-perapp', 'pautom-process', 'copilot-studio', 'process-mining']
   },
+  {
+    id: 'customer-insights',
+    name: 'D365 Customer Insights',
+    priority: 6,
+    defaultCollapsed: true,
+    skuIds: ['ci-base', 'ci-interacted-t1', 'ci-interacted-t2', 'ci-interacted-t3', 'ci-unified-t1', 'ci-unified-t2', 'ci-unified-t3']
+  },
 ];
 
 // Create lookup for SKUs by ID
@@ -295,6 +386,7 @@ const tierColors = {
   'crm': { bg: 'bg-blue-500', light: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
   'pp-premium': { bg: 'bg-teal-500', light: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-300' },
   'pp-workload': { bg: 'bg-green-500', light: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
+  'customer-insights': { bg: 'bg-orange-500', light: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
 };
 
 const formatCapacity = (value) => {
@@ -325,9 +417,10 @@ const InfoIcon = ({ tooltip }) => (
   </Tooltip>
 );
 
-const ProductRow = ({ sku, value, onChange }) => {
+const ProductRow = ({ sku, value, onChange, licenses }) => {
   const hasAccrual = sku.accrues_capacity && (sku.accrual.db_gb > 0 || sku.accrual.file_gb > 0);
   const isActive = value > 0;
+  const isDisabled = sku.requires_base && !(licenses[sku.requires_base] > 0);
   
   // Determine unit label based on license type
   const unitLabel = sku.license_type === 'PerApp' ? 'apps' 
@@ -337,15 +430,16 @@ const ProductRow = ({ sku, value, onChange }) => {
     : 'users';
   
   return (
-    <div className={`py-1.5 ${isActive ? 'bg-gray-50 -mx-2 px-2 rounded' : ''}`}>
+    <div className={`py-1.5 ${isActive ? 'bg-gray-50 -mx-2 px-2 rounded' : ''} ${isDisabled ? 'opacity-50' : ''}`}>
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
           checked={isActive}
           onChange={(e) => onChange(e.target.checked ? 1 : 0)}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+          disabled={isDisabled}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 disabled:cursor-not-allowed"
         />
-        <span className={`text-sm flex-1 ${isActive ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+        <span className={`text-sm flex-1 ${isActive ? 'font-medium text-gray-900' : 'text-gray-600'}`} title={isDisabled ? `Requires ${sku.requires_base} to be enabled` : ''}>
           {sku.name}
           {sku.tenant_cap_db_gb && (
             <span className="text-xs text-amber-600 ml-1">(capped)</span>
@@ -424,6 +518,7 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest, isExpanded, onT
               sku={sku}
               value={licenses[sku.id] || 0}
               onChange={(val) => onLicenseChange(sku.id, val)}
+              licenses={licenses}
             />
           ))}
         </div>
@@ -432,10 +527,11 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest, isExpanded, onT
   );
 };
 
-const CapacityGauge = ({ label, defaultValue, perUserAccrualValue = 0, perAppAccrualValue = 0, addonValue = 0, total, maxValue, color, tooltip }) => {
+const CapacityGauge = ({ label, defaultValue, perUserAccrualValue = 0, perAppAccrualValue = 0, perPackAccrualValue = 0, addonValue = 0, total, maxValue, color, tooltip }) => {
   const defaultPct = (defaultValue / maxValue) * 100;
   const perUserAccrualPct = (perUserAccrualValue / maxValue) * 100;
   const perAppAccrualPct = (perAppAccrualValue / maxValue) * 100;
+  const perPackAccrualPct = (perPackAccrualValue / maxValue) * 100;
   const addonPct = (addonValue / maxValue) * 100;
   
   return (
@@ -474,6 +570,14 @@ const CapacityGauge = ({ label, defaultValue, perUserAccrualValue = 0, perAppAcc
             {perAppAccrualPct > 15 && `+${formatCapacity(perAppAccrualValue)}`}
           </div>
         )}
+        {perPackAccrualValue > 0 && (
+          <div 
+            className="bg-orange-500 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${perPackAccrualPct}%` }}
+          >
+            {perPackAccrualPct > 15 && `+${formatCapacity(perPackAccrualValue)}`}
+          </div>
+        )}
         {addonValue > 0 && (
           <div 
             className="bg-amber-500 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
@@ -500,6 +604,12 @@ const CapacityGauge = ({ label, defaultValue, perUserAccrualValue = 0, perAppAcc
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded bg-green-600"></div>
             <span>Per-app: {formatCapacity(perAppAccrualValue)}</span>
+          </div>
+        )}
+        {perPackAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-orange-500"></div>
+            <span>Per-pack: {formatCapacity(perPackAccrualValue)}</span>
           </div>
         )}
         {addonValue > 0 && (
@@ -598,8 +708,18 @@ export default function DataverseCapacityCalculator() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(true);
-  // Track which tier groups are expanded - default to first tier expanded on desktop
-  const [expandedTiers, setExpandedTiers] = useState({ 'erp-premium': true });
+  // Track which tier groups are expanded - default to first tier expanded on desktop, 
+  // but keep Customer Insights collapsed by default
+  const [expandedTiers, setExpandedTiers] = useState(() => {
+    const initial = { 'erp-premium': true };
+    // Don't expand tiers that have defaultCollapsed
+    PRODUCT_TIERS.forEach(tier => {
+      if (tier.defaultCollapsed) {
+        initial[tier.id] = false;
+      }
+    });
+    return initial;
+  });
   
   // Track first visit and what's new dismissal using localStorage
   useEffect(() => {
@@ -659,8 +779,13 @@ export default function DataverseCapacityCalculator() {
     let filePerUserAccrual = 0;
     let dbPerAppAccrual = 0;
     let filePerAppAccrual = 0;
+    let dbPerPackAccrual = 0;
+    let filePerPackAccrual = 0;
     const skuUsage = {}; // Track usage for tenant caps
     const breakdown = []; // Per-SKU breakdown for display
+    
+    // Check if Customer Insights base is licensed
+    const hasCustomerInsightsBase = (licenses['ci-base'] || 0) > 0;
     
     // Calculate accruals and find highest tier
     for (const tier of PRODUCT_TIERS) {
@@ -677,6 +802,11 @@ export default function DataverseCapacityCalculator() {
             }
           }
           
+          // Skip CI pack capacity if CI base is not licensed
+          if (sku.requires_base === 'ci-base' && !hasCustomerInsightsBase) {
+            continue;
+          }
+          
           // Calculate accrual (only if accrues_capacity is true)
           if (sku.accrues_capacity) {
             let addDb = count * sku.accrual.db_gb;
@@ -690,11 +820,15 @@ export default function DataverseCapacityCalculator() {
             }
             
             if (addDb > 0 || addFile > 0) {
-              // Separate per-app licenses from per-user licenses
+              // Separate per-app licenses, per-pack licenses, and per-user licenses
               const isPerApp = sku.license_type === 'PerApp';
+              const isPerPack = sku.license_type === 'CapacityPack';
               if (isPerApp) {
                 dbPerAppAccrual += addDb;
                 filePerAppAccrual += addFile;
+              } else if (isPerPack) {
+                dbPerPackAccrual += addDb;
+                filePerPackAccrual += addFile;
               } else {
                 dbPerUserAccrual += addDb;
                 filePerUserAccrual += addFile;
@@ -705,6 +839,7 @@ export default function DataverseCapacityCalculator() {
                 count,
                 db: addDb,
                 file: addFile,
+                isPack: isPerPack,
                 capped: sku.tenant_cap_db_gb !== undefined && addDb < count * sku.accrual.db_gb
               });
             }
@@ -730,10 +865,12 @@ export default function DataverseCapacityCalculator() {
       filePerUserAccrual,
       dbPerAppAccrual,
       filePerAppAccrual,
+      dbPerPackAccrual,
+      filePerPackAccrual,
       dbAddon,
       fileAddon,
-      dbTotal: dbDefault + dbPerUserAccrual + dbPerAppAccrual + dbAddon,
-      fileTotal: fileDefault + filePerUserAccrual + filePerAppAccrual + fileAddon,
+      dbTotal: dbDefault + dbPerUserAccrual + dbPerAppAccrual + dbPerPackAccrual + dbAddon,
+      fileTotal: fileDefault + filePerUserAccrual + filePerAppAccrual + filePerPackAccrual + fileAddon,
       breakdown
     };
   }, [licenses, addons]);
@@ -909,6 +1046,7 @@ export default function DataverseCapacityCalculator() {
                 defaultValue={calculation.dbDefault}
                 perUserAccrualValue={calculation.dbPerUserAccrual}
                 perAppAccrualValue={calculation.dbPerAppAccrual}
+                perPackAccrualValue={calculation.dbPerPackAccrual}
                 addonValue={calculation.dbAddon}
                 total={calculation.dbTotal}
                 maxValue={maxDb}
@@ -921,6 +1059,7 @@ export default function DataverseCapacityCalculator() {
                 defaultValue={calculation.fileDefault}
                 perUserAccrualValue={calculation.filePerUserAccrual}
                 perAppAccrualValue={calculation.filePerAppAccrual}
+                perPackAccrualValue={calculation.filePerPackAccrual}
                 addonValue={calculation.fileAddon}
                 total={calculation.fileTotal}
                 maxValue={maxFile}
@@ -951,7 +1090,7 @@ export default function DataverseCapacityCalculator() {
                       <td className="py-2 px-4 text-right text-gray-900">{calculation.dbDefault} GB</td>
                       <td className="py-2 px-4 text-right text-gray-900">{calculation.fileDefault} GB</td>
                     </tr>
-                    {calculation.breakdown.map(({ sku, count, db, file, capped }) => (
+                    {calculation.breakdown.filter(({ isPack }) => !isPack).map(({ sku, count, db, file, capped }) => (
                       <tr key={sku.id} className="border-b border-gray-100">
                         <td className="py-2 px-4 text-gray-600">
                           {sku.name} × {count}
@@ -963,6 +1102,27 @@ export default function DataverseCapacityCalculator() {
                         <td className="py-2 px-4 text-right text-gray-700">+{file.toFixed(1)} GB</td>
                       </tr>
                     ))}
+                    {calculation.breakdown.some(({ isPack }) => isPack) && (
+                      <>
+                        <tr className="bg-orange-50">
+                          <td colSpan="3" className="py-2 px-4 text-xs font-semibold text-orange-800 uppercase tracking-wide">
+                            Per-pack contributions (add-on capacity)
+                          </td>
+                        </tr>
+                        {calculation.breakdown.filter(({ isPack }) => isPack).map(({ sku, count, db, file, capped }) => (
+                          <tr key={sku.id} className="border-b border-gray-100">
+                            <td className="py-2 px-4 text-gray-600">
+                              {sku.name} × {count}
+                              {capped && (
+                                <span className="text-xs text-amber-600 ml-1">(capped at {sku.tenant_cap_db_gb} GB)</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-4 text-right text-gray-700">+{db.toFixed(1)} GB</td>
+                            <td className="py-2 px-4 text-right text-gray-700">+{file.toFixed(1)} GB</td>
+                          </tr>
+                        ))}
+                      </>
+                    )}
                     {(calculation.dbAddon > 0 || calculation.fileAddon > 0) && (
                       <tr className="border-b border-gray-100 bg-amber-50">
                         <td className="py-2 px-4 text-amber-800">
