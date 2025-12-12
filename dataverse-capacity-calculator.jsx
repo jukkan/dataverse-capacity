@@ -784,10 +784,14 @@ export default function DataverseCapacityCalculator() {
     const skuUsage = {}; // Track usage for tenant caps
     const breakdown = []; // Per-SKU breakdown for display
     
+    // Track maximum default capacity across ALL eligible SKUs (not just within one tier)
+    let dbDefault = 0;
+    let fileDefault = 0;
+    
     // Check if Customer Insights base is licensed
     const hasCustomerInsightsBase = (licenses['ci-base'] || 0) > 0;
     
-    // Calculate accruals and find highest tier
+    // Calculate accruals and find maximum default capacity
     for (const tier of PRODUCT_TIERS) {
       for (const skuId of tier.skuIds) {
         const sku = SKU_MAP[skuId];
@@ -795,10 +799,15 @@ export default function DataverseCapacityCalculator() {
         
         const count = licenses[skuId] || 0;
         if (count > 0) {
-          // Track highest tier for default capacity
+          // Track maximum default capacity across all eligible SKUs
           if (sku.eligible_for_default) {
-            if (!highestTier || tier.priority < highestTier.priority) {
-              highestTier = tier;
+            if (sku.default.db_gb > dbDefault) {
+              dbDefault = sku.default.db_gb;
+              highestTier = tier; // Track which tier provided the max for display
+            }
+            // File capacity may come from a different SKU
+            if (sku.default.file_gb > fileDefault) {
+              fileDefault = sku.default.file_gb;
             }
           }
           
@@ -847,11 +856,6 @@ export default function DataverseCapacityCalculator() {
         }
       }
     }
-    
-    // Get default capacity from highest tier
-    const tierDefaults = highestTier ? getTierDefaults(highestTier) : { dbDefault: 0, fileDefault: 0 };
-    const dbDefault = tierDefaults.dbDefault;
-    const fileDefault = tierDefaults.fileDefault;
     
     // Add-ons are pooled directly
     const dbAddon = addons.db_gb;
