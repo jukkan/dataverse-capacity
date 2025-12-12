@@ -801,13 +801,21 @@ export default function DataverseCapacityCalculator() {
         if (count > 0) {
           // Track maximum default capacity across all eligible SKUs
           if (sku.eligible_for_default) {
-            if (sku.default.db_gb > dbDefault) {
+            // Track which tier provides the maximum capacity (for display purposes)
+            // If this SKU provides max DB or max File, update highestTier
+            const providesMaxDb = sku.default.db_gb > dbDefault;
+            const providesMaxFile = sku.default.file_gb > fileDefault;
+            
+            if (providesMaxDb) {
               dbDefault = sku.default.db_gb;
-              highestTier = tier; // Track which tier provided the max for display
             }
-            // File capacity may come from a different SKU
-            if (sku.default.file_gb > fileDefault) {
+            if (providesMaxFile) {
               fileDefault = sku.default.file_gb;
+            }
+            
+            // Update highestTier if this SKU provides either maximum
+            if (providesMaxDb || providesMaxFile) {
+              highestTier = tier;
             }
           }
           
