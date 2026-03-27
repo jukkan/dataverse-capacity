@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 
-// SKU definitions with capacity values (December 2025)
+// SKU definitions with capacity values (April 2026)
 // Using new data model from specs.md
 const SKUS = [
   // D365 ERP Premium
@@ -157,8 +157,8 @@ const SKUS = [
     product_group: "SalesPremium",
     license_type: "Base",
     eligible_for_default: true,
-    default: { db_gb: 30, file_gb: 40 },
-    accrual: { db_gb: 0.25, file_gb: 2 },
+    default: { db_gb: 45, file_gb: 60 },
+    accrual: { db_gb: 0.5, file_gb: 2 },
     accrues_capacity: true,
   },
   {
@@ -827,7 +827,7 @@ const WhatsNewPanel = ({ onDismiss }) => {
         className="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-sky-100 transition"
       >
         <span className="text-sm font-medium text-sky-800 flex items-center gap-2">
-          <span>🆕</span> What's New: December 2025
+          <span>🆕</span> What's New: April 2026
           <span className="text-xs bg-sky-200 text-sky-700 px-1.5 py-0.5 rounded font-semibold">
             NEW
           </span>
@@ -850,24 +850,18 @@ const WhatsNewPanel = ({ onDismiss }) => {
       {isOpen && (
         <div className="px-3 py-2 border-t border-sky-200 text-xs text-sky-800 space-y-2">
           <p>
-            Microsoft increased default Dataverse capacity across all product
-            tiers effective December 1, 2025:
+            Additional Dataverse storage capacity for Dynamics 365 Sales Premium,
+            effective April 15, 2026:
           </p>
           <ul className="list-disc list-inside space-y-1 ml-1">
             <li>
-              <strong>Power Platform Premium:</strong> 10 → 20 GB database, 20 →
-              40 GB file
+              <strong>Default database capacity:</strong> 30 → 45 GB
             </li>
             <li>
-              <strong>Power Platform per-app/Copilot Studio:</strong> 5 → 15 GB
-              database
+              <strong>Per-user database accrual:</strong> 250 MB → 500 MB
             </li>
             <li>
-              <strong>D365 CRM:</strong> 10 → 30 GB database, 20 → 40 GB file
-            </li>
-            <li>
-              <strong>D365 ERP:</strong> Dataverse + Operations pools merged,
-              +20 GB across the board
+              <strong>Default file capacity:</strong> 40 → 60 GB
             </li>
           </ul>
           <p className="text-sky-600">
@@ -876,12 +870,12 @@ const WhatsNewPanel = ({ onDismiss }) => {
           </p>
           <p className="pt-1">
             <a
-              href="https://licensing.guide/blog/"
+              href="https://admin.cloud.microsoft/#/MessageCenter/:/messages/MC1253515"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sky-600 hover:text-sky-800 underline font-medium"
             >
-              Read The Licensing Guide blog for latest info →
+              View M365 Admin Center announcement (MC1253515) →
             </a>
           </p>
         </div>
@@ -1179,7 +1173,7 @@ export default function DataverseCapacityCalculator() {
           </p>
         </InfoPanel>
 
-        {/* What's New December 2025 announcement - only shown on mobile in sidebar */}
+        {/* What's New April 2026 announcement - only shown on mobile in sidebar */}
         {showWhatsNew && (
           <div className="lg:hidden">
             <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
@@ -1296,7 +1290,7 @@ export default function DataverseCapacityCalculator() {
       {/* Right Panel - Capacity Metrics */}
       <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
         <div className="max-w-xl">
-          {/* What's New December 2025 announcement - shown on desktop in right panel */}
+          {/* What's New April 2026 announcement - shown on desktop in right panel */}
           {showWhatsNew && (
             <div className="hidden lg:block mb-6">
               <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
@@ -1487,7 +1481,7 @@ export default function DataverseCapacityCalculator() {
 
           {/* Version indicator */}
           <div className="mt-4 text-center text-xs text-gray-400">
-            Capacity values: December 2025
+            Capacity values: April 2026
           </div>
         </div>
       </div>
