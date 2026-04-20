@@ -8,6 +8,9 @@ dist/
 .idea/
 .vscode/
 
+# Local-only files (deployment notes, secrets, scratch) — never committed
+.local/
+
 # OS files
 .DS_Store
 Thumbs.db

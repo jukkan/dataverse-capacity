@@ -69,6 +69,23 @@ The site automatically deploys to GitHub Pages when changes are pushed to the `m
 
 **Live Site**: [https://dataverse.licensing.guide/](https://dataverse.licensing.guide/)
 
+## MCP Server
+
+This repo also includes a deployable MCP server in [`mcp-server/`](./mcp-server/).
+
+The MCP implementation uses the same deterministic calculation engine as the web UI, so the capacity numbers stay aligned across:
+
+- the public calculator
+- local `stdio` MCP clients such as VS Code or Claude Desktop
+- remote HTTP MCP deployments behind a reverse proxy
+
+The MCP package now exposes two transports:
+
+- `src/index.js` for local `stdio` clients
+- `src/http.js` for stateless Streamable HTTP deployments
+
+That means other operators can deploy the MCP server on their own infrastructure without depending on the public hosted endpoint. For setup details, see [`mcp-server/README.md`](./mcp-server/README.md).
+
 ## Disclaimer
 
 This calculator provides estimates based on publicly available licensing information (December 2025 values). Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).

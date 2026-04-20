@@ -19,7 +19,7 @@ Built from the same deterministic engine that powers the [interactive calculator
 
 1. Agent calls `list_skus` (or already knows the IDs)  
 2. Agent calls `calculate_capacity` with `licenses: [{skuId: "sales-ent", count: 50}, {skuId: "pa-premium", count: 100}]`  
-3. Gets back: **72.5 GB database, 340 GB file storage** — with a line-by-line breakdown
+3. Gets back: **67.5 GB database, 340 GB file storage** — with a line-by-line breakdown
 
 ---
 
@@ -33,6 +33,23 @@ Built from the same deterministic engine that powers the [interactive calculator
 cd mcp-server
 npm install
 ```
+
+The package exposes two entrypoints:
+
+- `npm start` for local `stdio` clients like VS Code MCP and Claude Desktop
+- `npm run start:http` for remote Streamable HTTP deployment behind a reverse proxy
+
+## Implementation
+
+The server is split by transport so the same tool logic can be reused in desktop and hosted scenarios:
+
+- `src/server.js` creates the MCP server instance and registers the tools
+- `src/index.js` exposes the `stdio` transport for local MCP clients
+- `src/http.js` exposes a stateless Streamable HTTP transport for remote deployment
+- `src/calculator.js` contains the shared Dataverse capacity calculation engine
+- `src/skus.js` contains the SKU catalog and entitlement metadata
+
+This separation matters because the calculator logic should stay transport-agnostic. The web app, local MCP usage, and hosted MCP usage can all share the same underlying rules instead of reimplementing them in different layers
 
 ---
 
@@ -71,7 +88,97 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 
 ### Copilot Studio / any HTTP client
 
-Run as an HTTP server by swapping the transport in `src/index.js` from `StdioServerTransport` to `StreamableHTTPServerTransport` (from `@modelcontextprotocol/sdk/server/streamableHttp.js`). Deploy to Vercel, Azure Container Apps, or any Node.js host. Then create a Power Platform custom connector pointing at the `/mcp` endpoint.
+Run the dedicated HTTP entrypoint:
+
+```bash
+cd mcp-server
+npm run start:http
+```
+
+Default listener:
+
+- MCP endpoint: `http://127.0.0.1:3000/mcp`
+- Health endpoint: `http://127.0.0.1:3000/health`
+
+Optional environment variables:
+
+- `HOST` defaults to `127.0.0.1`
+- `PORT` defaults to `3000`
+- `MCP_ALLOWED_HOSTS` comma-separated allowlist for Host header validation
+- `MCP_ALLOWED_ORIGINS` comma-separated allowlist for Origin header validation
+
+The HTTP server runs in stateless Streamable HTTP mode with JSON responses enabled, which is a better fit for a lightweight public calculation service than a desktop-only `stdio` transport.
+
+For a reverse-proxied deployment, publish only `/mcp` and `/health`, keep the Node listener bound to localhost, and let Nginx terminate TLS in front of it.
+
+## Self-hosting
+
+You can deploy this MCP server on any Linux host with Node 18+ and a reverse proxy such as Nginx or Caddy.
+
+Recommended pattern:
+
+1. Copy the `mcp-server/` folder to the target machine
+2. Run `npm ci`
+3. Start the HTTP transport with `npm run start:http`
+4. Bind Node to localhost only
+5. Publish only `/health` and `/mcp` through the reverse proxy
+6. Terminate TLS at the reverse proxy
+7. Add a Host allowlist with `MCP_ALLOWED_HOSTS`
+
+Example environment:
+
+```bash
+HOST=127.0.0.1
+PORT=3000
+MCP_ALLOWED_HOSTS=mcp.example.com
+npm run start:http
+```
+
+Example Nginx location blocks:
+
+```nginx
+location = /health {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_pass http://127.0.0.1:3000/health;
+}
+
+location = /mcp {
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 300s;
+    proxy_pass http://127.0.0.1:3000/mcp;
+}
+```
+
+Smoke test after deployment:
+
+```bash
+curl https://mcp.example.com/health
+
+curl -X POST https://mcp.example.com/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"initialize",
+    "params":{
+      "protocolVersion":"2025-03-26",
+      "capabilities":{},
+      "clientInfo":{"name":"smoke-test","version":"1.0.0"}
+    }
+  }'
+```
+
+This repo intentionally documents the generic deployment pattern rather than one specific production host. Infrastructure-specific service names, directories, certificates, and host-level operational details should stay in the operator's own project notes.
 
 ---
 
