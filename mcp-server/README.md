@@ -10,8 +10,9 @@ Built from the same deterministic engine that powers the [interactive calculator
 
 | Tool | Description |
 |---|---|
-| `list_skus` | Discover all license SKU IDs, their names, default capacity, and per-unit accrual values. Filter by product family. |
-| `calculate_capacity` | Given a list of `{skuId, count}` pairs plus optional add-ons, returns total tenant-pool Dataverse DB and File capacity with a full breakdown. |
+| `list_skus` | Discover all license SKU IDs, their names, default capacity, and per-unit accrual values. Optional family filter. |
+| `calculate_capacity` | Full-fidelity calculation tool using structured nested inputs such as `licenses`, `addons`, and `payg_environments`. |
+| `calculate_capacity_simple` | Compatibility wrapper for MCP clients that struggle with nested JSON Schema inputs. Accepts `licenses_json` plus flat numeric inputs, but uses the same calculation engine and returns the same result shape. |
 
 ### Example agent conversation
 
@@ -20,6 +21,15 @@ Built from the same deterministic engine that powers the [interactive calculator
 1. Agent calls `list_skus` (or already knows the IDs)  
 2. Agent calls `calculate_capacity` with `licenses: [{skuId: "sales-ent", count: 50}, {skuId: "pa-premium", count: 100}]`  
 3. Gets back: **67.5 GB database, 340 GB file storage** — with a line-by-line breakdown
+
+### Compatibility note
+
+The server exposes both:
+
+- the full structured tool surface for MCP clients that handle nested JSON Schema cleanly
+- a Copilot-friendly compatibility tool for clients that connect successfully but fail to execute tools with richer nested schemas
+
+This is an intentional compatibility layer, not a replacement of the core API surface. The goal is to preserve the richer contract for capable clients such as Codex and Claude while providing a flat-input fallback for clients such as Copilot Studio when needed.
 
 ---
 
@@ -50,6 +60,12 @@ The server is split by transport so the same tool logic can be reused in desktop
 - `src/skus.js` contains the SKU catalog and entitlement metadata
 
 This separation matters because the calculator logic should stay transport-agnostic. The web app, local MCP usage, and hosted MCP usage can all share the same underlying rules instead of reimplementing them in different layers
+
+The compatibility tool lives in the same MCP server and calls the same `calculateCapacity(...)` engine. That keeps the numeric logic identical across:
+
+- the website
+- Codex and Claude using `calculate_capacity`
+- compatibility-constrained clients using `calculate_capacity_simple`
 
 ---
 
@@ -98,6 +114,7 @@ npm run start:http
 Default listener:
 
 - MCP endpoint: `http://127.0.0.1:3000/mcp`
+- Copilot MCP endpoint: `http://127.0.0.1:3000/copilot-mcp`
 - Health endpoint: `http://127.0.0.1:3000/health`
 
 Optional environment variables:
@@ -109,7 +126,39 @@ Optional environment variables:
 
 The HTTP server runs in stateless Streamable HTTP mode with JSON responses enabled, which is a better fit for a lightweight public calculation service than a desktop-only `stdio` transport.
 
-For a reverse-proxied deployment, publish only `/mcp` and `/health`, keep the Node listener bound to localhost, and let Nginx terminate TLS in front of it.
+For a reverse-proxied deployment, publish only the MCP paths you intend to use plus `/health`, keep the Node listener bound to localhost, and let Nginx terminate TLS in front of it.
+
+## Copilot Studio compatibility
+
+Some MCP clients handle nested tool schemas better than others. To avoid weakening the core API surface just because one client is more limited, this server keeps:
+
+- `/mcp` as the full MCP profile, including the richer `calculate_capacity` contract
+- `/copilot-mcp` as the compatibility profile, publishing only the simpler tools Copilot Studio is more likely to ingest cleanly
+
+Current profile intent:
+
+- `/mcp`: `list_skus`, `calculate_capacity`, `calculate_capacity_simple`
+- `/copilot-mcp`: `list_skus`, `calculate_capacity_simple`
+
+`calculate_capacity_simple` takes:
+
+- `licenses_json` as a JSON string
+- `db_addon_gb`
+- `file_addon_gb`
+- `payg_environments`
+
+Example:
+
+```json
+{
+  "licenses_json": "[{\"skuId\":\"pa-premium\",\"count\":150},{\"skuId\":\"sales-ent\",\"count\":40}]",
+  "db_addon_gb": 10,
+  "file_addon_gb": 20,
+  "payg_environments": 3
+}
+```
+
+Use this tool only when the MCP client fails to execute the richer nested input schema. The returned calculation output stays aligned with the full tool because both paths use the same engine.
 
 ## Self-hosting
 

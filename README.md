@@ -84,7 +84,12 @@ The MCP package now exposes two transports:
 - `src/index.js` for local `stdio` clients
 - `src/http.js` for stateless Streamable HTTP deployments
 
-That means other operators can deploy the MCP server on their own infrastructure without depending on the public hosted endpoint. For setup details, see [`mcp-server/README.md`](./mcp-server/README.md).
+The hosted HTTP deployment can also expose multiple MCP profiles from the same server, such as:
+
+- a full profile for capable MCP clients
+- a narrowed compatibility profile for clients like Copilot Studio
+
+That means other operators can deploy the MCP server on their own infrastructure without depending on the public hosted endpoint, while still preserving a richer API surface for some clients and a safer fallback for others. For setup details, see [`mcp-server/README.md`](./mcp-server/README.md).
 
 ## Disclaimer
 

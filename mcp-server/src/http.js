@@ -25,7 +25,8 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname !== "/mcp") {
+  const profile = getProfileForPath(url.pathname);
+  if (!profile) {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Not found" }));
     return;
@@ -38,7 +39,7 @@ const httpServer = createServer(async (req, res) => {
     allowedHosts: allowedHosts.length > 0 ? allowedHosts : undefined,
     allowedOrigins: allowedOrigins.length > 0 ? allowedOrigins : undefined,
   });
-  const server = createCapacityServer();
+  const server = createCapacityServer({ profile });
 
   try {
     await server.connect(transport);
@@ -69,6 +70,7 @@ httpServer.listen(port, host, () => {
   console.error(
     `Dataverse Capacity MCP HTTP server listening on http://${host}:${port}`
   );
+  console.error("Available MCP paths: /mcp, /copilot-mcp");
   if (enableDnsRebindingProtection) {
     console.error(
       `DNS rebinding protection enabled for hosts: ${allowedHosts.join(", ") || "(origin-only)"}`
@@ -81,4 +83,10 @@ function parseCsvEnv(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function getProfileForPath(pathname) {
+  if (pathname === "/mcp") return "full";
+  if (pathname === "/copilot-mcp") return "copilot";
+  return null;
 }
