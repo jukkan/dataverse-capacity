@@ -8,14 +8,31 @@ export function createCapacityServer(options = {}) {
   const server = new McpServer({
     name: profile === "copilot" ? "dataverse-capacity-copilot" : "dataverse-capacity",
     version: "1.0.0",
+    description:
+      "Calculates Dataverse database and file storage entitlements from Microsoft license SKUs. " +
+      "Answers pre-purchase and planning questions about included Dataverse capacity.",
+  }, {
+    instructions:
+      "Use this server to answer questions about Dataverse storage entitlements, " +
+      "included capacity, and license comparisons for Microsoft Dynamics 365, Power Apps, " +
+      "Power Automate, and Copilot Studio products. " +
+      "Typical questions: 'How much Dataverse capacity do I get with N licenses of X?', " +
+      "'Compare Sales Enterprise vs Sales Premium storage', " +
+      "'What database and file GB are included with this license?'. " +
+      "Workflow: (1) call list_skus to map product names to skuIds, " +
+      "(2) call calculate_capacity_simple with the skuIds and counts, " +
+      "(3) return the tenant-pooled database and file GB totals and breakdown.",
   });
 
   server.tool(
     "list_skus",
-    "List all Microsoft license SKUs that grant Dataverse capacity. " +
-      "Returns the SKU id (use this in calculate_capacity or calculate_capacity_simple), display name, product family, " +
-      "default capacity granted per tenant, and per-unit accrual values. " +
-      "Use this tool first to discover valid skuId values whenever product names are ambiguous.",
+    "List all Microsoft license SKUs that grant Dataverse capacity (database and file storage). " +
+      "Use this tool FIRST when a user mentions product names, license names, or asks to compare licenses — " +
+      "it maps display names like 'Sales Enterprise' or 'Power Apps Premium' to the skuId values needed by the calculation tools. " +
+      "Essential for questions like 'What Dataverse storage is included with this license?', " +
+      "'Compare Sales Enterprise vs Sales Premium capacity', or 'Which SKU gives the most database GB?'. " +
+      "Returns: skuId, display name, product family, tenant default capacity, and per-unit accrual values. " +
+      "Typical workflow: list_skus → identify skuIds → calculate_capacity_simple to get totals.",
     {
       family: z
         .string()
@@ -69,14 +86,15 @@ export function createCapacityServer(options = {}) {
   if (profile !== "copilot") {
     server.tool(
       "calculate_capacity",
-      "Calculate the total Dataverse capacity (database and file storage) a Microsoft tenant " +
-        "is entitled to based on their license subscriptions and capacity add-ons. " +
-        "Capacity is pooled at tenant level and shared across environments. " +
-        "Returns total GB for database and file storage, broken down by source " +
-        "(default, per-user accrual, per-app accrual, per-pack accrual, add-ons), " +
-        "plus per-SKU detail. " +
-        "Use list_skus to discover valid skuId values. " +
-        "This is the full structured version for MCP clients that support nested JSON inputs cleanly.",
+        "Calculate total Dataverse database and file storage entitlement for a Microsoft tenant " +
+        "based on their license mix, capacity add-ons, and pay-as-you-go environments. " +
+        "Answers questions like 'How much Dataverse capacity do I get with 50 Sales Enterprise licenses?' " +
+        "or 'What is the included Dataverse storage for my license combination?'. " +
+        "Capacity is pooled at the tenant level and shared across all environments. " +
+        "Returns total database GB and file GB, broken down by source " +
+        "(default, per-user accrual, per-app accrual, per-pack accrual, add-ons), plus per-SKU detail. " +
+        "Use list_skus first to map product names to skuId values. " +
+        "This is the full structured version; use calculate_capacity_simple if the client has trouble with nested JSON inputs.",
       {
         licenses: z
           .array(
@@ -138,12 +156,16 @@ export function createCapacityServer(options = {}) {
 
   server.tool(
     "calculate_capacity_simple",
-    "Copilot-friendly compatibility wrapper for Dataverse capacity calculations. " +
-      "Prefer this when an MCP client has trouble with nested JSON schemas or when using Copilot Studio. " +
-      "Pass the license mix as a JSON string such as " +
-      '[{"skuId":"pa-premium","count":150},{"skuId":"sales-ent","count":40}] ' +
-      "and optionally pass add-on GB values and pay-as-you-go environment count. " +
-      "This tool uses the same calculation engine as calculate_capacity.",
+    "Calculate Dataverse storage entitlement from a license mix. " +
+      "Best entry point for natural-language licensing questions such as: " +
+      "'How much Dataverse capacity do I get with 20 Sales Enterprise licenses?', " +
+      "'Compare database and file storage for Sales Enterprise vs Sales Premium', " +
+      "'What Dataverse storage is included with Power Apps Premium?'. " +
+      "Pass the license mix as a JSON string, e.g. " +
+      '[{"skuId":"pa-premium","count":150},{"skuId":"sales-ent","count":40}]. ' +
+      "Returns tenant-pooled database GB and file GB totals with a full breakdown. " +
+      "Use list_skus first to map product/license display names to skuId values. " +
+      "Same calculation engine as calculate_capacity but with flat inputs for broader client compatibility.",
     {
       licenses_json: z
         .string()
