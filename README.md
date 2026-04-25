@@ -34,6 +34,55 @@ An interactive web-based calculator for estimating Microsoft Dataverse capacity 
    - Power Platform Premium (20 GB DB / 40 GB File)
    - Power Platform Workload (15 GB DB / 20 GB File)
 
+### Calculation Logic
+
+```mermaid
+flowchart TD
+    INPUT["Input: selected licenses, counts,<br/>add-on packs, PAYG environments"]
+
+    INPUT --> LOOP["For each license entry"]
+    LOOP --> LOOKUP{"SKU found<br/>in catalog?"}
+    LOOKUP -- No --> ERR["Log error, skip"]
+    LOOKUP -- Yes --> CICHECK{"Requires<br/>CI base?"}
+    CICHECK -- "Yes, base missing" --> ERR
+    CICHECK -- No / base present --> DEFAULT{"Eligible for<br/>default capacity?"}
+
+    DEFAULT -- Yes --> MAXDEF["Update tenant default<br/>max(current, SKU default)"]
+    DEFAULT -- No --> ACCRUAL
+
+    MAXDEF --> ACCRUAL{"Accrues<br/>capacity?"}
+    ACCRUAL -- No --> NEXT
+    ACCRUAL -- Yes --> CAP{"Tenant cap<br/>applies?"}
+
+    CAP -- Yes --> CAPDB["Clamp DB accrual<br/>to remaining cap"]
+    CAP -- No --> CLASSIFY
+    CAPDB --> CLASSIFY
+
+    CLASSIFY{"License type?"}
+    CLASSIFY -- PerUser --> USERACC["Add to per-user accrual"]
+    CLASSIFY -- PerApp --> APPACC["Add to per-app accrual"]
+    CLASSIFY -- CapacityPack --> PACKACC["Add to pack accrual"]
+
+    USERACC --> NEXT[" "]
+    APPACC --> NEXT
+    PACKACC --> NEXT
+    NEXT --> MORE{"More<br/>licenses?"}
+    MORE -- Yes --> LOOP
+    MORE -- No --> SUM
+
+    SUM["Tenant pool totals<br/>DB = default + per-user + per-app + pack + add-ons<br/>File = default + per-user + per-app + pack + add-ons"]
+    SUM --> PAYG["PAYG environments<br/>1 GB DB + 1 GB File each<br/>(separate from tenant pool)"]
+
+    PAYG --> RESULT["Result: totals, breakdown,<br/>PAYG, errors"]
+
+    ERR --> NEXT
+
+    style INPUT fill:#4f46e5,color:#fff,stroke:none
+    style RESULT fill:#059669,color:#fff,stroke:none
+    style ERR fill:#dc2626,color:#fff,stroke:none
+    style SUM fill:#0284c7,color:#fff,stroke:none
+```
+
 ## Development
 
 ### Prerequisites
