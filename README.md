@@ -138,6 +138,16 @@ The hosted HTTP deployment can also expose multiple MCP profiles from the same s
 - a full profile for capable MCP clients
 - a narrowed compatibility profile for clients like Copilot Studio
 
+Public hosted endpoints for this repo:
+
+- Health: `https://mcp.licensing.guide/health`
+- Full MCP profile: `https://mcp.licensing.guide/mcp`
+- Copilot Studio compatibility profile: `https://mcp.licensing.guide/copilot-mcp`
+
+Use `https://mcp.licensing.guide/mcp` for capable MCP clients and `https://mcp.licensing.guide/copilot-mcp` for Copilot Studio.
+
+The separate Copilot Studio profile exists because the initial Copilot Studio connection completed handshake traffic against the full `/mcp` endpoint but did not surface tools, while server logs confirmed successful requests from the Copilot Studio client. The working conclusion was that Copilot Studio was more sensitive to the richer nested schemas on the full profile, so the safer fix was to add a narrowed compatibility profile instead of weakening the main MCP surface for other clients.
+
 That means other operators can deploy the MCP server on their own infrastructure without depending on the public hosted endpoint, while still preserving a richer API surface for some clients and a safer fallback for others. For setup details, see [`mcp-server/README.md`](./mcp-server/README.md).
 
 ## Disclaimer

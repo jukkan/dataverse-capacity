@@ -69,6 +69,22 @@ The compatibility tool lives in the same MCP server and calls the same `calculat
 
 ---
 
+## Public hosted endpoints
+
+The MCP server that powers the public Dataverse capacity service is available at:
+
+- Health: `https://mcp.licensing.guide/health`
+- Full MCP profile: `https://mcp.licensing.guide/mcp`
+- Copilot Studio compatibility profile: `https://mcp.licensing.guide/copilot-mcp`
+
+Use these hosted endpoints when you want to connect to the published shared service instead of running your own local or self-hosted instance.
+
+### Which endpoint to use
+
+- Use `https://mcp.licensing.guide/mcp` for MCP clients that support richer nested schemas cleanly, such as Claude and other capable MCP agents.
+- Use `https://mcp.licensing.guide/copilot-mcp` for Copilot Studio or any client that connects successfully but does not surface tools from the full profile.
+- Use `https://mcp.licensing.guide/health` for a simple availability check.
+
 ## Wire up to an AI client
 
 ### VS Code / GitHub Copilot
@@ -128,6 +144,37 @@ The HTTP server runs in stateless Streamable HTTP mode with JSON responses enabl
 
 For a reverse-proxied deployment, publish only the MCP paths you intend to use plus `/health`, keep the Node listener bound to localhost, and let Nginx terminate TLS in front of it.
 
+### Hosted HTTP usage
+
+If you want to use the public hosted server rather than run the repo locally, connect your MCP client directly to:
+
+- `https://mcp.licensing.guide/mcp` for the full profile
+- `https://mcp.licensing.guide/copilot-mcp` for the Copilot-safe compatibility profile
+
+For basic connectivity checks:
+
+```bash
+curl https://mcp.licensing.guide/health
+```
+
+Example initialize request against the hosted full MCP endpoint:
+
+```bash
+curl -X POST https://mcp.licensing.guide/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  --data '{
+    "jsonrpc":"2.0",
+    "id":1,
+    "method":"initialize",
+    "params":{
+      "protocolVersion":"2025-03-26",
+      "capabilities":{},
+      "clientInfo":{"name":"public-endpoint-smoke-test","version":"1.0.0"}
+    }
+  }'
+```
+
 ## Copilot Studio compatibility
 
 Some MCP clients handle nested tool schemas better than others. To avoid weakening the core API surface just because one client is more limited, this server keeps:
@@ -139,6 +186,32 @@ Current profile intent:
 
 - `/mcp`: `list_skus`, `calculate_capacity`, `calculate_capacity_simple`
 - `/copilot-mcp`: `list_skus`, `calculate_capacity_simple`
+
+### Why `/copilot-mcp` exists
+
+The initial Copilot Studio connection to `https://mcp.licensing.guide/mcp` successfully reached the server and completed MCP handshake traffic, but Copilot Studio did not surface the tools.
+
+Observed behavior:
+
+- Nginx access logs showed successful `POST /mcp` calls from `CopilotStudio PowerFx/1.99.0-local`
+- DNS, TLS, and basic MCP connectivity were therefore working
+- The likely failure point was Copilot Studio's handling of the richer nested tool schemas on the full MCP profile
+
+Working conclusion:
+
+- Copilot Studio was more sensitive to the richer nested tool schemas exposed on the full MCP profile
+- A compatibility profile was needed rather than weakening the main MCP surface for Codex and Claude
+
+Resolution implemented:
+
+- Keep `/mcp` as the full MCP profile
+- Add `/copilot-mcp` as a narrowed Copilot-specific profile
+- Publish only `list_skus` and `calculate_capacity_simple` on `/copilot-mcp`
+
+Result:
+
+- After deleting the original Copilot Studio MCP connection and adding a new one against `https://mcp.licensing.guide/copilot-mcp`, the tools appeared and the test succeeded
+- The richer tool surface remains available to clients that can consume it cleanly
 
 `calculate_capacity_simple` takes:
 
@@ -170,7 +243,7 @@ Recommended pattern:
 2. Run `npm ci`
 3. Start the HTTP transport with `npm run start:http`
 4. Bind Node to localhost only
-5. Publish only `/health` and `/mcp` through the reverse proxy
+5. Publish `/health`, `/mcp`, and optionally `/copilot-mcp` through the reverse proxy
 6. Terminate TLS at the reverse proxy
 7. Add a Host allowlist with `MCP_ALLOWED_HOSTS`
 
@@ -205,6 +278,17 @@ location = /mcp {
     proxy_read_timeout 300s;
     proxy_pass http://127.0.0.1:3000/mcp;
 }
+
+  location = /copilot-mcp {
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 300s;
+    proxy_pass http://127.0.0.1:3000/copilot-mcp;
+  }
 ```
 
 Smoke test after deployment:
