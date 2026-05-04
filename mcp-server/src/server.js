@@ -245,7 +245,7 @@ function buildCalculationResponse(result) {
   };
 }
 
-function parseLicensesJson(licensesJson) {
+export function parseLicensesJson(licensesJson) {
   let parsed;
 
   try {

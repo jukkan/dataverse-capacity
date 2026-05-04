@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "start:http": "node src/http.js",
-    "dev:http": "node --watch src/http.js"
+    "dev:http": "node --watch src/http.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
