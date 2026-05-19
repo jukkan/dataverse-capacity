@@ -816,70 +816,28 @@ const InfoPanel = ({ title, children, defaultOpen = false }) => {
   );
 };
 
-// What's New panel for announcements with dismiss functionality
+// Announcement banner with dismiss functionality
 const WhatsNewPanel = ({ onDismiss }) => {
-  const [isOpen, setIsOpen] = useState(true);
-
   return (
-    <div className="bg-sky-50 border border-sky-200 rounded-lg overflow-hidden mb-4">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-sky-100 transition"
-      >
-        <span className="text-sm font-medium text-sky-800 flex items-center gap-2">
-          <span>🆕</span> What's New: April 2026
-          <span className="text-xs bg-sky-200 text-sky-700 px-1.5 py-0.5 rounded font-semibold">
-            NEW
-          </span>
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="text-sky-600">{isOpen ? "▲" : "▼"}</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDismiss();
-            }}
-            className="text-sky-400 hover:text-sky-600 text-lg leading-none"
-            aria-label="Dismiss announcement"
-            title="Dismiss"
-          >
-            ×
-          </button>
-        </div>
-      </button>
-      {isOpen && (
-        <div className="px-3 py-2 border-t border-sky-200 text-xs text-sky-800 space-y-2">
-          <p>
-            Additional Dataverse storage capacity for Dynamics 365 Sales Premium,
-            effective April 15, 2026:
-          </p>
-          <ul className="list-disc list-inside space-y-1 ml-1">
-            <li>
-              <strong>Default database capacity:</strong> 30 → 45 GB
-            </li>
-            <li>
-              <strong>Per-user database accrual:</strong> 250 MB → 500 MB
-            </li>
-            <li>
-              <strong>Default file capacity:</strong> 40 → 60 GB
-            </li>
-          </ul>
-          <p className="text-sky-600">
-            No action required—capacity updates automatically in Power Platform
-            Admin Center.
-          </p>
-          <p className="pt-1">
-            <a
-              href="https://admin.cloud.microsoft/#/MessageCenter/:/messages/MC1253515"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-600 hover:text-sky-800 underline font-medium"
-            >
-              View M365 Admin Center announcement (MC1253515) →
-            </a>
-          </p>
-        </div>
-      )}
+    <div className="bg-sky-50 border border-sky-200 rounded-lg mb-4 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <a
+          href="https://licensing.guide/licensing-knowledge-for-ai-agents-dataverse-capacity-mcp-server/"
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="text-sm text-sky-800 font-medium hover:underline"
+        >
+          🆕 Now available: Dataverse Capacity MCP Server
+        </a>
+        <button
+          onClick={onDismiss}
+          className="text-sky-400 hover:text-sky-600 text-lg leading-none"
+          aria-label="Dismiss announcement"
+          title="Dismiss"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 };
@@ -914,7 +872,7 @@ export default function DataverseCapacityCalculator() {
       }
 
       const whatsNewDismissed = localStorage.getItem(
-        "dataverse-calc-whats-new-dec2025-dismissed",
+        "dataverse-calc-mcp-banner-dismissed",
       );
       if (whatsNewDismissed) {
         setShowWhatsNew(false);
@@ -928,7 +886,7 @@ export default function DataverseCapacityCalculator() {
     setShowWhatsNew(false);
     try {
       localStorage.setItem(
-        "dataverse-calc-whats-new-dec2025-dismissed",
+        "dataverse-calc-mcp-banner-dismissed",
         "true",
       );
     } catch (e) {
@@ -1141,17 +1099,36 @@ export default function DataverseCapacityCalculator() {
         <h1 className="text-lg font-bold text-gray-900 mb-1">
           Dataverse Capacity Calculator
         </h1>
-        <p className="text-xs text-gray-500 mb-4">
-          Brought to you by{" "}
+        <div className="text-xs text-gray-500 mb-4 space-y-1">
+          <p>
+            Brought to you by{" "}
+            <a
+              href="https://licensing.guide"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-blue-600 hover:underline"
+            >
+              licensing.guide
+            </a>
+          </p>
           <a
-            href="https://licensing.guide"
+            href="https://github.com/jukkan/dataverse-capacity"
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="text-blue-600 hover:underline"
+            className="inline-flex items-center gap-1 text-blue-600 hover:underline"
           >
-            licensing.guide
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-3.5 h-3.5"
+              aria-hidden="true"
+            >
+              <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.4 7.86 10.92.58.1.79-.25.79-.56 0-.28-.01-1.02-.01-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.24-1.27-5.24-5.67 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.14 1.17a10.9 10.9 0 0 1 5.72 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.58.23 2.74.11 3.03.73.8 1.18 1.82 1.18 3.07 0 4.41-2.69 5.37-5.25 5.66.41.35.78 1.03.78 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+            </svg>
+            <span>GitHub repository</span>
           </a>
-        </p>
+        </div>
 
         {/* Educational info panel */}
         <InfoPanel title="How Capacity Works">
@@ -1173,7 +1150,7 @@ export default function DataverseCapacityCalculator() {
           </p>
         </InfoPanel>
 
-        {/* What's New April 2026 announcement - only shown on mobile in sidebar */}
+        {/* MCP Server announcement - only shown on mobile in sidebar */}
         {showWhatsNew && (
           <div className="lg:hidden">
             <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
@@ -1290,7 +1267,7 @@ export default function DataverseCapacityCalculator() {
       {/* Right Panel - Capacity Metrics */}
       <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
         <div className="max-w-xl">
-          {/* What's New April 2026 announcement - shown on desktop in right panel */}
+          {/* MCP Server announcement - shown on desktop in right panel */}
           {showWhatsNew && (
             <div className="hidden lg:block mb-6">
               <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
