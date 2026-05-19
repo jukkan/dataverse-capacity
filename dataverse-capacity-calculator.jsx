@@ -1115,6 +1115,7 @@ export default function DataverseCapacityCalculator() {
             href="https://github.com/jukkan/dataverse-capacity"
             target="_blank"
             rel="noopener noreferrer nofollow"
+            aria-label="Open GitHub repository"
             className="inline-flex items-center gap-1 text-blue-600 hover:underline"
           >
             <svg
@@ -1124,7 +1125,6 @@ export default function DataverseCapacityCalculator() {
               className="w-3.5 h-3.5"
               aria-hidden="true"
             >
-              <title>GitHub</title>
               <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.4 7.86 10.92.58.1.79-.25.79-.56 0-.28-.01-1.02-.01-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.24-1.27-5.24-5.67 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.14 1.17a10.9 10.9 0 0 1 5.72 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.58.23 2.74.11 3.03.73.8 1.18 1.82 1.18 3.07 0 4.41-2.69 5.37-5.25 5.66.41.35.78 1.03.78 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
             </svg>
             <span>GitHub repository</span>
