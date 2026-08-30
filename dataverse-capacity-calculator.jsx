@@ -1489,6 +1489,16 @@ export default function DataverseCapacityCalculator() {
           <div className="mt-4 text-center text-xs text-gray-400">
             Capacity values: August 2026
           </div>
+          <div className="mt-2 text-center text-xs">
+            <a
+              href="https://licensing.guide/resources/"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              Download latest licensing guides here
+            </a>
+          </div>
         </div>
       </div>
     </div>
