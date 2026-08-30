@@ -257,7 +257,7 @@ export const SKUS = [
     product_group: "PowerAppsPremium",
     license_type: "Base",
     eligible_for_default: true,
-    default: { db_gb: 20, file_gb: 40 },
+    default: { db_gb: 20, file_gb: 20 },
     accrual: { db_gb: 0.25, file_gb: 2 },
     accrues_capacity: true,
   },
@@ -268,7 +268,7 @@ export const SKUS = [
     product_group: "PowerAutomatePremium",
     license_type: "Base",
     eligible_for_default: true,
-    default: { db_gb: 20, file_gb: 40 },
+    default: { db_gb: 20, file_gb: 20 },
     accrual: { db_gb: 0.25, file_gb: 2 },
     accrues_capacity: true,
   },
@@ -292,9 +292,9 @@ export const SKUS = [
     product_group: "PowerAutomateProcess",
     license_type: "PerFlow",
     eligible_for_default: true,
-    default: { db_gb: 15, file_gb: 20 },
-    accrual: { db_gb: 0, file_gb: 0 },
-    accrues_capacity: false,
+    default: { db_gb: 20, file_gb: 2 },
+    accrual: { db_gb: 0.05, file_gb: 0.2 },
+    accrues_capacity: true,
   },
   {
     id: "copilot-studio",
@@ -308,7 +308,7 @@ export const SKUS = [
     accrues_capacity: false,
   },
 
-  // ── Process Mining (tenant-capped DB accrual) ─────────────────────────────
+  // ── Process Mining ──────────────────────────────────────────────────────────
   {
     id: "process-mining",
     name: "Power Automate Process Mining",
@@ -317,9 +317,8 @@ export const SKUS = [
     license_type: "CapacityPack",
     eligible_for_default: false,
     default: { db_gb: 0, file_gb: 0 },
-    accrual: { db_gb: 10, file_gb: 50 },
+    accrual: { db_gb: 2, file_gb: 1000 },
     accrues_capacity: true,
-    tenant_cap_db_gb: 100,
   },
 
   // ── D365 Customer Insights ─────────────────────────────────────────────────
