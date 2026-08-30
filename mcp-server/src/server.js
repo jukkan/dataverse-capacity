@@ -71,7 +71,7 @@ export function createCapacityServer(options = {}) {
             text: JSON.stringify(
               {
                 sku_count: rows.length,
-                capacity_data_as_of: "April 2026",
+                capacity_data_as_of: "August 2026",
                 skus: rows,
               },
               null,

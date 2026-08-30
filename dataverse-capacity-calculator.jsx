@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 
-// SKU definitions with capacity values (April 2026)
+// SKU definitions with capacity values (August 2026)
 // Using new data model from specs.md
 const SKUS = [
   // D365 ERP Premium
@@ -88,6 +88,28 @@ const SKUS = [
     accrual: { db_gb: 1, file_gb: 2 },
     accrues_capacity: true,
     min_licenses: 5,
+  },
+  {
+    id: "operations-activity",
+    name: "Dynamics 365 Operations – Activity",
+    family: "Dynamics365",
+    product_group: "ERPAdditionalUser",
+    license_type: "Base",
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 1, file_gb: 2 },
+    accrues_capacity: true,
+  },
+  {
+    id: "operations-device",
+    name: "Dynamics 365 Operations – Device",
+    family: "Dynamics365",
+    product_group: "ERPAdditionalDevice",
+    license_type: "Device",
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 2, file_gb: 3 },
+    accrues_capacity: true,
   },
   // D365 ERP Add-on (capacity values vary widely based on add-on, so not included in default or accrual - users can add manually as needed)
   {
@@ -211,19 +233,19 @@ const SKUS = [
     family: "Dynamics365",
     product_group: "SalesProfessional",
     license_type: "Attach",
-    eligible_for_default: false,
-    default: { db_gb: 0, file_gb: 0 },
+    eligible_for_default: true,
+    default: { db_gb: 30, file_gb: 40 },
     accrual: { db_gb: 0, file_gb: 0 },
     accrues_capacity: false,
   },
   {
     id: "cs-pro",
-    name: "CS Professional",
+    name: "Customer Service Professional",
     family: "Dynamics365",
     product_group: "CustomerServiceProfessional",
     license_type: "Attach",
-    eligible_for_default: false,
-    default: { db_gb: 0, file_gb: 0 },
+    eligible_for_default: true,
+    default: { db_gb: 30, file_gb: 40 },
     accrual: { db_gb: 0, file_gb: 0 },
     accrues_capacity: false,
   },
@@ -398,15 +420,21 @@ const PRODUCT_TIERS = [
     skuIds: ["commerce", "finance", "project-ops", "scm", "hr"],
   },
   {
+    id: "erp-additional",
+    name: "D365 ERP Additional Users/Devices",
+    priority: 2.5,
+    skuIds: ["operations-activity", "operations-device"],
+  },
+  {
     id: "erp-addons",
     name: "D365 ERP Add-ons",
-    priority: 2.5,
+    priority: 3,
     skuIds: ["erp-sb2", "erp-sb3", "erp-sb4", "erp-sb5"],
   },
   {
     id: "crm",
     name: "D365 CRM",
-    priority: 3,
+    priority: 4,
     skuIds: [
       "sales-ent",
       "sales-premium",
@@ -544,7 +572,9 @@ const ProductRow = ({ sku, value, onChange, licenses }) => {
           ? "bots"
           : sku.license_type === "CapacityPack"
             ? "packs"
-            : "users";
+            : sku.license_type === "Device"
+              ? "devices"
+              : "users";
 
   return (
     <div
@@ -1459,7 +1489,7 @@ export default function DataverseCapacityCalculator() {
 
           {/* Version indicator */}
           <div className="mt-4 text-center text-xs text-gray-400">
-            Capacity values: April 2026
+            Capacity values: August 2026
           </div>
         </div>
       </div>

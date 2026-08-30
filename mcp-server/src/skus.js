@@ -1,4 +1,4 @@
-// SKU definitions with Dataverse capacity values (April 2026)
+// SKU definitions with Dataverse capacity values (August 2026)
 // Extracted from the interactive calculator — single source of truth.
 // Each SKU maps to one row in the Microsoft licensing guides.
 
@@ -89,6 +89,28 @@ export const SKUS = [
     accrual: { db_gb: 1, file_gb: 2 },
     accrues_capacity: true,
     min_licenses: 5,
+  },
+  {
+    id: "operations-activity",
+    name: "Dynamics 365 Operations – Activity",
+    family: "Dynamics365",
+    product_group: "ERPAdditionalUser",
+    license_type: "Base",
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 1, file_gb: 2 },
+    accrues_capacity: true,
+  },
+  {
+    id: "operations-device",
+    name: "Dynamics 365 Operations – Device",
+    family: "Dynamics365",
+    product_group: "ERPAdditionalDevice",
+    license_type: "Device",
+    eligible_for_default: false,
+    default: { db_gb: 0, file_gb: 0 },
+    accrual: { db_gb: 2, file_gb: 3 },
+    accrues_capacity: true,
   },
 
   // ── D365 ERP Add-ons (Sandbox tiers) ─────────────────────────────────────
@@ -210,8 +232,8 @@ export const SKUS = [
     family: "Dynamics365",
     product_group: "SalesProfessional",
     license_type: "Attach",
-    eligible_for_default: false,
-    default: { db_gb: 0, file_gb: 0 },
+    eligible_for_default: true,
+    default: { db_gb: 30, file_gb: 40 },
     accrual: { db_gb: 0, file_gb: 0 },
     accrues_capacity: false,
   },
@@ -221,8 +243,8 @@ export const SKUS = [
     family: "Dynamics365",
     product_group: "CustomerServiceProfessional",
     license_type: "Attach",
-    eligible_for_default: false,
-    default: { db_gb: 0, file_gb: 0 },
+    eligible_for_default: true,
+    default: { db_gb: 30, file_gb: 40 },
     accrual: { db_gb: 0, file_gb: 0 },
     accrues_capacity: false,
   },
