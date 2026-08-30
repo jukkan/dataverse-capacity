@@ -63,7 +63,7 @@ export function calculateCapacity(
       let addDb = rawCount * sku.accrual.db_gb;
       const addFile = rawCount * sku.accrual.file_gb;
 
-      // Apply per-SKU tenant cap (e.g. Process Mining DB capped at 100 GB)
+      // Apply per-SKU tenant cap when Microsoft explicitly defines one
       if (sku.tenant_cap_db_gb !== undefined) {
         const used = skuUsage[sku.id] || 0;
         addDb = Math.min(addDb, Math.max(0, sku.tenant_cap_db_gb - used));

@@ -318,7 +318,7 @@ This repo intentionally documents the generic deployment pattern rather than one
 ## Capacity rules implemented
 
 - **Default capacity** — max of all eligible SKUs licensed (not additive across SKUs)
-- **Per-unit accrual** — per user/app/pack/bot, capped per-SKU where Microsoft specifies (e.g. Process Mining DB capped at 100 GB)
+- **Per-unit accrual** — per user/app/pack/bot, with per-SKU caps only where Microsoft explicitly defines them
 - **Attach licenses** — no accrual (Customer Insights attach = same default as base, still no accrual)
 - **Capacity add-ons** — 1 GB increments, tenant-pooled
 - **Pay-as-you-go environments** — 1 GB DB + 1 GB File each, independent of tenant pool

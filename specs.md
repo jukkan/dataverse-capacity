@@ -45,14 +45,14 @@ Sku {
     log_gb: number | 0
   },
   accrues_capacity: bool,      // false for D365 attach licenses except CI attach
-  tenant_cap_db_gb?: number    // optional cap (e.g. Process Mining 100 GB total)
+  tenant_cap_db_gb?: number    // optional cap if Microsoft explicitly specifies one per SKU
 }
 ```
 
 Populate this from:
 
-* Power Platform Licensing Guide Dec 2025 (Power Apps, Power Automate, Power Pages tables).
-* Dynamics 365 Licensing Guide Dec 2025 capacity table for D365 product groups (default + accrual).
+* Power Platform Licensing Guide August 2026 (Power Apps, Power Automate, Power Pages tables).
+* Dynamics 365 Licensing Guide August 2026 capacity table for D365 product groups (default + accrual).
 * Microsoft Copilot Studio deck for Dataverse for Copilot Studio defaults.
 
 The calculator doesn’t need the full guides if it has this SKU metadata.
@@ -115,11 +115,11 @@ for (sku, count) in licenses:
 
 Rules:
 
-1. Power Platform standalone SKUs (per Dec 2025 guide):
+1. Power Platform standalone SKUs (per August 2026 guide):
 
    * Every Power Apps, Power Automate and Power Pages standalone subscription accrues additional Dataverse DB/File capacity.
    * Some SKUs also accrue Log capacity (mainly Power Pages capacity packs).
-   * Process Mining add-on accrues large File capacity and some DB, with a 100 GB tenant cap on DB accrual.
+   * Process Mining add-on accrues large File capacity and some DB with no separate tenant DB cap in the current August 2026 entitlement table.
    * Dataverse for Copilot Studio does **not** accrue extra per pack; it only has a tenant-level default.
 
 2. Dynamics 365:
@@ -143,7 +143,7 @@ for (sku, count) in licenses:
     add_file = count * sku.accrual.file_gb
     add_log = count * sku.accrual.log_gb
 
-    # optional tenant cap by sku (e.g. Process Mining DB 100 GB)
+    # optional tenant cap by sku when Microsoft explicitly states one
     if sku.tenant_cap_db_gb is not None:
         existing = sku_usage.get(sku.id, 0)
         add_db = min(add_db, max(0, sku.tenant_cap_db_gb - existing))
@@ -218,9 +218,9 @@ DataverseCapacityResult {
 
 1. **Attach licenses:** No extra capacity except Customer Insights attach default = CI base default, but still no accrual.([Microsoft][1])
 2. **Dataverse for Teams:** Out of scope; no capacity add-ons; handled with separate limits.
-3. **Process Mining add-on:** Tenant cap of 100 GB on DB accrual from these licenses.
+3. **Process Mining add-on:** Uses the August 2026 entitlement values for the add-on: +2 GB DB and +1 TB File per license, without a separate tenant DB cap unless the guide explicitly says otherwise.
 4. **Units:** Guides mix MB and GB; calculator should convert everything to GB internally (1 GB = 1024 MB).
 
-If you give this spec + a CSV/JSON of all SKUs with their Dec-2025 default/accrual numbers, a coding agent should have everything needed to implement an accurate interactive calculator.
+If you give this spec + a CSV/JSON of all SKUs with their August 2026 default/accrual numbers, a coding agent should have everything needed to implement an accurate interactive calculator.
 
 [1]: https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/documents/Dynamics-365-Licensing-Guide-July-2024.pdf?utm_source=chatgpt.com "Dynamics 365 Licensing Guide"

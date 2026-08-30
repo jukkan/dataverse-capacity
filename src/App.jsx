@@ -202,7 +202,7 @@ const PRODUCT_TIERS = [
     id: "pp-premium",
     name: "Power Platform Premium",
     dbDefault: 20,
-    fileDefault: 40,
+    fileDefault: 20,
     priority: 4,
     description: "Power Apps and Power Automate Premium licenses",
     products: [
@@ -225,7 +225,7 @@ const PRODUCT_TIERS = [
   {
     id: "pp-workload",
     name: "Power Platform Workload",
-    dbDefault: 15,
+    dbDefault: 20,
     fileDefault: 20,
     priority: 5,
     description: "Per-app and process-based licenses",
@@ -241,10 +241,9 @@ const PRODUCT_TIERS = [
       {
         id: "pautom-process",
         name: "Power Automate Process",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        tooltip: "Power Automate Process - No per-user capacity accrual",
+        dbPerUser: 0.05,
+        filePerUser: 0.2,
+        tooltip: "Power Automate Process - 0.05 GB DB + 0.2 GB File per flow",
       },
       {
         id: "copilot-studio",

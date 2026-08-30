@@ -62,7 +62,7 @@ test("calculateCapacity clamps negative addon and pay-as-you-go inputs to zero",
   );
 
   assert.equal(result.tenant_pool.db_gb, 20.25);
-  assert.equal(result.tenant_pool.file_gb, 42);
+  assert.equal(result.tenant_pool.file_gb, 22);
   assert.equal(result.tenant_pool.breakdown.addons.db_gb, 0);
   assert.equal(result.tenant_pool.breakdown.addons.file_gb, 0);
   assert.equal(result.payg_environments.count, 0);
@@ -81,5 +81,36 @@ test("calculateCapacity floors license counts before applying accrual", () => {
   assert.equal(result.per_sku_breakdown.length, 1);
   assert.equal(result.per_sku_breakdown[0].count, 2);
   assert.equal(result.tenant_pool.db_gb, 20.5);
-  assert.equal(result.tenant_pool.file_gb, 44);
+  assert.equal(result.tenant_pool.file_gb, 24);
+});
+
+test("calculateCapacity reflects the August 2026 Power Platform entitlement refresh", () => {
+  const result = calculateCapacity(
+    {
+      licenses: [
+        { skuId: "pa-premium", count: 1 },
+        { skuId: "pautom-premium", count: 1 },
+        { skuId: "pautom-process", count: 3 },
+        { skuId: "process-mining", count: 2 },
+      ],
+    },
+    SKU_MAP
+  );
+
+  assert.equal(result.tenant_pool.breakdown.default.db_gb, 20);
+  assert.equal(result.tenant_pool.breakdown.default.file_gb, 20);
+
+  const processRow = result.per_sku_breakdown.find(
+    (row) => row.skuId === "pautom-process"
+  );
+  const miningRow = result.per_sku_breakdown.find(
+    (row) => row.skuId === "process-mining"
+  );
+
+  assert.equal(processRow.db_gb, 0.15);
+  assert.equal(processRow.file_gb, 0.6);
+  assert.equal(miningRow.db_gb, 4);
+  assert.equal(miningRow.file_gb, 2000);
+  assert.equal(miningRow.capped, false);
+  assert.equal(SKU_MAP["process-mining"].tenant_cap_db_gb, undefined);
 });

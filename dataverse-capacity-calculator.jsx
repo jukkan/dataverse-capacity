@@ -257,7 +257,7 @@ const SKUS = [
     product_group: "PowerAppsPremium",
     license_type: "Base",
     eligible_for_default: true,
-    default: { db_gb: 20, file_gb: 40 },
+    default: { db_gb: 20, file_gb: 20 },
     accrual: { db_gb: 0.25, file_gb: 2 },
     accrues_capacity: true,
   },
@@ -268,7 +268,7 @@ const SKUS = [
     product_group: "PowerAutomatePremium",
     license_type: "Base",
     eligible_for_default: true,
-    default: { db_gb: 20, file_gb: 40 },
+    default: { db_gb: 20, file_gb: 20 },
     accrual: { db_gb: 0.25, file_gb: 2 },
     accrues_capacity: true,
   },
@@ -291,9 +291,9 @@ const SKUS = [
     product_group: "PowerAutomateProcess",
     license_type: "PerFlow",
     eligible_for_default: true,
-    default: { db_gb: 15, file_gb: 20 },
-    accrual: { db_gb: 0, file_gb: 0 },
-    accrues_capacity: false,
+    default: { db_gb: 20, file_gb: 2 },
+    accrual: { db_gb: 0.05, file_gb: 0.2 },
+    accrues_capacity: true,
   },
   {
     id: "copilot-studio",
@@ -306,7 +306,7 @@ const SKUS = [
     accrual: { db_gb: 0, file_gb: 0 },
     accrues_capacity: false,
   },
-  // Process Mining (with 100 GB tenant cap)
+  // Process Mining add-on
   {
     id: "process-mining",
     name: "Process Mining",
@@ -315,9 +315,8 @@ const SKUS = [
     license_type: "CapacityPack",
     eligible_for_default: false,
     default: { db_gb: 0, file_gb: 0 },
-    accrual: { db_gb: 10, file_gb: 50 },
+    accrual: { db_gb: 2, file_gb: 1000 },
     accrues_capacity: true,
-    tenant_cap_db_gb: 100,
   },
   // D365 Customer Insights
   {
@@ -1004,7 +1003,7 @@ export default function DataverseCapacityCalculator() {
             let addDb = count * sku.accrual.db_gb;
             const addFile = count * sku.accrual.file_gb;
 
-            // Apply tenant cap for SKUs like Process Mining
+            // Apply per-SKU DB cap when Microsoft explicitly defines one
             if (sku.tenant_cap_db_gb !== undefined) {
               const existing = skuUsage[sku.id] || 0;
               addDb = Math.min(
@@ -1482,9 +1481,8 @@ export default function DataverseCapacityCalculator() {
           <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
             <strong>Notes:</strong> Default capacity granted once per tenant —
             highest tier wins. Per-user accrual stacks across all products. Log
-            capacity (2-3 GB) not shown. Process Mining has a 100 GB tenant cap
-            on DB accrual. Verify actual entitlements in Power Platform Admin
-            Center.
+            capacity (2-3 GB) not shown. Verify actual entitlements in Power
+            Platform Admin Center.
           </div>
 
           {/* Version indicator */}
