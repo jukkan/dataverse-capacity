@@ -152,7 +152,7 @@ That means other operators can deploy the MCP server on their own infrastructure
 
 ## Disclaimer
 
-This calculator provides estimates based on publicly available licensing information (December 2025 values). Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
+This calculator provides estimates based on publicly available licensing information (August 2026 values). Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
 
 ## Resources
 

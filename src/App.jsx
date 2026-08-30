@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 
 // Product definitions with capacity values
-// Source: Microsoft Dataverse capacity documentation (verified December 2025)
+// Source: Microsoft Dataverse capacity documentation (verified August 2026)
 // Values may change - verify at https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage
 const PRODUCT_TIERS = [
   {
@@ -697,7 +697,7 @@ const Header = () => (
         </div>
       </div>
       <div className="text-sm bg-white/10 px-3 py-1 rounded-full">
-        December 2025 Values
+        August 2026 Values
       </div>
     </div>
   </header>

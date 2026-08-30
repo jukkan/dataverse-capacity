@@ -323,4 +323,4 @@ This repo intentionally documents the generic deployment pattern rather than one
 - **Capacity add-ons** — 1 GB increments, tenant-pooled
 - **Pay-as-you-go environments** — 1 GB DB + 1 GB File each, independent of tenant pool
 
-Data reflects the **December 2025 Power Platform and Dynamics 365 Licensing Guides** with the April 2026 Sales Premium update (MC1253515).
+Data reflects the **August 2026 Power Platform and Dynamics 365 Licensing Guides** with the August 2026 Dynamics 365 capacity refresh.
