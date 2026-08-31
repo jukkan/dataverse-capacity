@@ -769,13 +769,12 @@ export default function DataverseCapacityCalculator() {
           <p>
             <strong>Default only:</strong> Example: Sales Professional and Customer
             Service Professional contribute 30 GB Database / 40 GB File to the
-            tenant default but add 0 GB per user.
+            tenant default but add 0 GB per user. A license showing 0 GB per user
+            can still matter because it may contribute to default capacity.
           </p>
           <p>
             <strong>Accrual only:</strong> Example: Operations – Activity has no
-            tenant default, but adds 1 GB Database + 2 GB File per user. A license
-            showing 0 GB per user can still matter because it may contribute to
-            default capacity.
+            tenant default, but adds 1 GB Database + 2 GB File per user.
           </p>
           <p>
             <strong>No capacity:</strong> Field Service Contractor and Customer

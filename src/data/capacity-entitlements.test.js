@@ -7,7 +7,8 @@ import {
   getCapacityImpact,
 } from "./capacity-entitlements.js";
 
-test("getCapacityImpact classifies default-only, accrual-only, and no-capacity SKUs", () => {
+test("getCapacityImpact classifies default-only, default+accrual, accrual-only, and no-capacity SKUs", () => {
+  assert.equal(getCapacityImpact(SKU_MAP["pa-premium"]), "default-and-accrual");
   assert.equal(getCapacityImpact(SKU_MAP["sales-pro"]), "default-only");
   assert.equal(getCapacityImpact(SKU_MAP["operations-activity"]), "accrual-only");
   assert.equal(getCapacityImpact(SKU_MAP["copilot-studio"]), "default-only");
