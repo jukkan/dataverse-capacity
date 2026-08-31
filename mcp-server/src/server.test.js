@@ -104,6 +104,9 @@ test("Customer Insights accrual is prorated by pack size and still requires the 
   const interactedT2 = active.per_sku_breakdown.find(
     (row) => row.skuId === "ci-interacted-t2"
   );
+  const interactedT3 = active.per_sku_breakdown.find(
+    (row) => row.skuId === "ci-interacted-t3"
+  );
   const unifiedT1 = active.per_sku_breakdown.find(
     (row) => row.skuId === "ci-unified-t1"
   );
@@ -112,6 +115,8 @@ test("Customer Insights accrual is prorated by pack size and still requires the 
   assert.equal(interactedT1.file_gb, 0.2);
   assert.equal(interactedT2.db_gb, 0.2);
   assert.equal(interactedT2.file_gb, 0.4);
+  assert.equal(interactedT3.db_gb, 1);
+  assert.equal(interactedT3.file_gb, 2);
   assert.equal(unifiedT1.db_gb, 15);
   assert.equal(unifiedT1.file_gb, 20);
   assert.equal(active.errors.length, 0);
