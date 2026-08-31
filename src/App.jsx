@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { ENTITLEMENT_SOURCE, SKU_MAP } from "./data/capacity-entitlements.js";
 import { calculateCapacity } from "./lib/calculate-capacity.js";
 
@@ -131,13 +131,45 @@ const formatCapacity = (value) => {
 
 // Tooltip component for educational content
 const Tooltip = ({ text, children }) => {
+  const triggerRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isVisible, setIsVisible] = useState(false);
+
+  const updatePosition = useCallback(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    setPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+    });
+  }, []);
+
   return (
-    <span className="relative group inline-flex items-center">
+    <span
+      ref={triggerRef}
+      className="relative inline-flex items-center"
+      onMouseEnter={() => {
+        updatePosition();
+        setIsVisible(true);
+      }}
+      onMouseLeave={() => setIsVisible(false)}
+      onFocus={() => {
+        updatePosition();
+        setIsVisible(true);
+      }}
+      onBlur={() => setIsVisible(false)}
+    >
       {children}
-      <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-48 p-2 text-xs text-white bg-gray-800 rounded shadow-lg">
-        {text}
-        <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
-      </span>
+      {isVisible && (
+        <span
+          className="fixed z-[9999] w-48 -translate-x-1/2 -translate-y-full p-2 text-xs text-white bg-gray-800 rounded shadow-lg"
+          style={{ left: `${position.x}px`, top: `${position.y}px` }}
+        >
+          {text}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
+        </span>
+      )}
     </span>
   );
 };
@@ -145,7 +177,10 @@ const Tooltip = ({ text, children }) => {
 // Info icon for tooltips
 const InfoIcon = ({ tooltip }) => (
   <Tooltip text={tooltip}>
-    <span className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-400 hover:text-gray-600 cursor-help ml-1">
+    <span
+      tabIndex={0}
+      className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-400 hover:text-gray-600 focus:text-gray-600 cursor-help ml-1 outline-none"
+    >
       ℹ️
     </span>
   </Tooltip>
