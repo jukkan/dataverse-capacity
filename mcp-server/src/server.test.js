@@ -114,3 +114,17 @@ test("calculateCapacity reflects the August 2026 Power Platform entitlement refr
   assert.equal(miningRow.capped, false);
   assert.equal(SKU_MAP["process-mining"].tenant_cap_db_gb, undefined);
 });
+
+test("shared entitlement data matches the current UI source of truth", async () => {
+  const { SKUS, SKU_MAP, ENTITLEMENT_SOURCE } = await import('../../src/data/capacity-entitlements.js');
+  const { calculateCapacity } = await import('../../src/lib/calculate-capacity.js');
+
+  assert.deepEqual(ENTITLEMENT_SOURCE.asOf, '2026-08');
+  assert.equal(SKU_MAP['pa-premium'].default.db_gb, 20);
+  assert.equal(SKU_MAP['sales-ent'].default.file_gb, 40);
+  assert.equal(
+    calculateCapacity({ licenses: [{ skuId: 'pa-premium', count: 2 }], addons: {}, paygEnvironments: 0 }, SKU_MAP).tenant_pool.db_gb,
+    20.5
+  );
+  assert.equal(SKUS.length, Object.keys(SKU_MAP).length);
+});

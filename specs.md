@@ -4,6 +4,9 @@
 
 ## 1. Scope and concepts
 
+The current implementation reflects the August 2026 Microsoft licensing guide refresh and focuses primarily on Dataverse Database + File entitlement calculations. Log capacity is intentionally out of scope unless explicitly implemented in a future update.
+
+
 * Capacity types in scope
 
   * `Dataverse_DB` – main data tables.
@@ -17,7 +20,7 @@
   3. Dataverse capacity add-ons.
   4. Pay-as-you-go Dataverse meters (per environment).
 
-The calculator’s job: given license counts and add-ons, output total Dataverse_DB / File / Log capacity (GB) and optionally separate out pay-as-you-go environments.
+The calculator’s job: given license counts and add-ons, output total Dataverse Database / File capacity (GB) and optionally separate out pay-as-you-go environments. The live engine is the deterministic calculation module in `src/lib/calculate-capacity.js`, and the entitlement values live in `src/data/capacity-entitlements.js`.
 
 ---
 
@@ -55,7 +58,7 @@ Populate this from:
 * Dynamics 365 Licensing Guide August 2026 capacity table for D365 product groups (default + accrual).
 * Microsoft Copilot Studio deck for Dataverse for Copilot Studio defaults.
 
-The calculator doesn’t need the full guides if it has this SKU metadata.
+The calculator doesn’t need the full guides if it has this SKU metadata. The current project stores the entitlement source metadata and all SKU rows in `src/data/capacity-entitlements.js` and uses `src/lib/calculate-capacity.js` as the authoritative calculation engine for both the web app and the MCP server.
 
 ### 2.2 Other entities
 
@@ -223,4 +226,4 @@ DataverseCapacityResult {
 
 If you give this spec + a CSV/JSON of all SKUs with their August 2026 default/accrual numbers, a coding agent should have everything needed to implement an accurate interactive calculator.
 
-[1]: https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/documents/Dynamics-365-Licensing-Guide-July-2024.pdf?utm_source=chatgpt.com "Dynamics 365 Licensing Guide"
+[1]: https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/bade/documents/products-and-services/en-us/bizapps/Dynamics-365-Licensing-Guide-August-2026.pdf "Dynamics 365 Licensing Guide (August 2026)"

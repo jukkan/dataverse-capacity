@@ -1,342 +1,88 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { ENTITLEMENT_SOURCE, SKU_MAP } from "./data/capacity-entitlements.js";
+import { calculateCapacity } from "./lib/calculate-capacity.js";
 
-// Product definitions with capacity values
-// Source: Microsoft Dataverse capacity documentation (verified August 2026)
-// Values may change - verify at https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage
+
 const PRODUCT_TIERS = [
   {
     id: "erp-premium",
     name: "D365 ERP Premium",
-    dbDefault: 125,
-    fileDefault: 110,
     priority: 1,
-    description: "Highest tier - Finance Premium and SCM Premium",
-    products: [
-      {
-        id: "finance-premium",
-        name: "Finance Premium",
-        dbPerUser: 10,
-        filePerUser: 10,
-        tooltip:
-          "Dynamics 365 Finance Premium - 10 GB DB + 10 GB File per user",
-      },
-      {
-        id: "scm-premium",
-        name: "SCM Premium",
-        dbPerUser: 10,
-        filePerUser: 10,
-        tooltip:
-          "Dynamics 365 Supply Chain Management Premium - 10 GB DB + 10 GB File per user",
-      },
-    ],
+    skuIds: ["finance-premium", "scm-premium"],
   },
   {
     id: "erp-standard",
     name: "D365 ERP Standard",
-    dbDefault: 90,
-    fileDefault: 80,
     priority: 2,
-    description: "Standard ERP products including Finance, SCM, Commerce",
-    products: [
-      {
-        id: "commerce",
-        name: "Commerce",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip: "Dynamics 365 Commerce - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "finance",
-        name: "Finance",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip: "Dynamics 365 Finance - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "project-ops",
-        name: "Project Operations",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip:
-          "Dynamics 365 Project Operations - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "scm",
-        name: "Supply Chain Management",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip:
-          "Dynamics 365 Supply Chain Management - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "hr",
-        name: "Human Resources",
-        dbPerUser: 1,
-        filePerUser: 2,
-        tooltip: "Dynamics 365 Human Resources - 1 GB DB + 2 GB File per user",
-      },
-    ],
+    skuIds: ["commerce", "finance", "project-ops", "scm", "hr"],
   },
   {
-    id: "erp-addon",
-    name: "D365 ERP Add-on",
-    dbDefault: 0,
-    fileDefault: 0,
-    priority: 2.1,
-    description: "Standard ERP product addons",
-    products: [
-      {
-        id: "commerce",
-        name: "Commerce",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip: "Dynamics 365 Commerce - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "finance",
-        name: "Finance",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip: "Dynamics 365 Finance - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "project-ops",
-        name: "Project Operations",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip:
-          "Dynamics 365 Project Operations - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "scm",
-        name: "Supply Chain Management",
-        dbPerUser: 5,
-        filePerUser: 5,
-        tooltip:
-          "Dynamics 365 Supply Chain Management - 5 GB DB + 5 GB File per user",
-      },
-      {
-        id: "hr",
-        name: "Human Resources",
-        dbPerUser: 1,
-        filePerUser: 2,
-        tooltip: "Dynamics 365 Human Resources - 1 GB DB + 2 GB File per user",
-      },
-    ],
+    id: "erp-additional",
+    name: "D365 ERP Additional Users/Devices",
+    priority: 2.5,
+    skuIds: ["operations-activity", "operations-device"],
+  },
+  {
+    id: "erp-addons",
+    name: "D365 ERP Add-ons",
+    priority: 3,
+    skuIds: ["erp-sb2", "erp-sb3", "erp-sb4", "erp-sb5"],
   },
   {
     id: "crm",
     name: "D365 CRM",
-    dbDefault: 30,
-    fileDefault: 40,
-    priority: 3,
-    description: "CRM applications including Sales and Customer Service",
-    products: [
-      {
-        id: "sales-ent",
-        name: "Sales Enterprise",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip:
-          "Dynamics 365 Sales Enterprise - 0.25 GB DB + 2 GB File per user",
-      },
-      {
-        id: "sales-premium",
-        name: "Sales Premium",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip: "Dynamics 365 Sales Premium - 0.25 GB DB + 2 GB File per user",
-      },
-      {
-        id: "cs-ent",
-        name: "Customer Service Enterprise",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip:
-          "Dynamics 365 Customer Service Enterprise - 0.25 GB DB + 2 GB File per user",
-      },
-      {
-        id: "cs-premium",
-        name: "Customer Service Premium",
-        dbPerUser: 0.25,
-        filePerUser: 35,
-        tooltip:
-          "Dynamics 365 Customer Service Premium - 0.25 GB DB + 35 GB File per user (includes voice recording storage)",
-      },
-      {
-        id: "field-service",
-        name: "Field Service",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip: "Dynamics 365 Field Service - 0.25 GB DB + 2 GB File per user",
-      },
-      {
-        id: "contact-center",
-        name: "Contact Center Voice",
-        dbPerUser: 0.25,
-        filePerUser: 35,
-        tooltip:
-          "Dynamics 365 Contact Center Voice - 0.25 GB DB + 35 GB File per user (includes voice recording storage)",
-      },
-      {
-        id: "sales-pro",
-        name: "Sales Professional",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        tooltip:
-          "Dynamics 365 Sales Professional - No per-user capacity accrual",
-      },
-      {
-        id: "cs-pro",
-        name: "CS Professional",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        tooltip:
-          "Dynamics 365 Customer Service Professional - No per-user capacity accrual",
-      },
+    priority: 4,
+    skuIds: [
+      "sales-ent",
+      "sales-premium",
+      "cs-ent",
+      "cs-premium",
+      "field-service",
+      "contact-center",
+      "sales-pro",
+      "cs-pro",
     ],
   },
   {
     id: "pp-premium",
     name: "Power Platform Premium",
-    dbDefault: 20,
-    fileDefault: 20,
     priority: 4,
-    description: "Power Apps and Power Automate Premium licenses",
-    products: [
-      {
-        id: "pa-premium",
-        name: "Power Apps Premium",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip: "Power Apps Premium - 0.25 GB DB + 2 GB File per user",
-      },
-      {
-        id: "pautom-premium",
-        name: "Power Automate Premium",
-        dbPerUser: 0.25,
-        filePerUser: 2,
-        tooltip: "Power Automate Premium - 0.25 GB DB + 2 GB File per user",
-      },
-    ],
+    skuIds: ["pa-premium", "pautom-premium"],
   },
   {
     id: "pp-workload",
     name: "Power Platform Workload",
-    dbDefault: 20,
-    fileDefault: 20,
     priority: 5,
-    description: "Per-app and process-based licenses",
-    products: [
-      {
-        id: "pa-perapp",
-        name: "Power Apps per app",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        tooltip: "Power Apps per app - No per-user capacity accrual",
-      },
-      {
-        id: "pautom-process",
-        name: "Power Automate Process",
-        dbPerUser: 0.05,
-        filePerUser: 0.2,
-        tooltip: "Power Automate Process - 0.05 GB DB + 0.2 GB File per flow",
-      },
-      {
-        id: "copilot-studio",
-        name: "Copilot Studio",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        tooltip: "Copilot Studio - No per-user capacity accrual",
-      },
-    ],
+    skuIds: ["pa-perapp", "pautom-process", "copilot-studio", "process-mining"],
   },
   {
     id: "customer-insights",
     name: "D365 Customer Insights",
-    dbDefault: 45,
-    fileDefault: 60,
     priority: 6,
-    description: "Customer Insights base license and capacity packs",
     defaultCollapsed: true,
-    products: [
-      {
-        id: "ci-base",
-        name: "Customer Insights (Base or Attach)",
-        dbPerUser: 0,
-        filePerUser: 0,
-        noAccrual: true,
-        isTenantLicense: true,
-        tooltip:
-          "Tenant-level license. Capacity applied once per tenant - 45 GB DB + 60 GB File",
-      },
-      {
-        id: "ci-interacted-t1",
-        name: "Interacted People Pack T1 (5K)",
-        dbPerUser: 1,
-        filePerUser: 2,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Interacted People Pack T1 - 1 GB DB + 2 GB File per pack",
-      },
-      {
-        id: "ci-interacted-t2",
-        name: "Interacted People Pack T2 (10K)",
-        dbPerUser: 1,
-        filePerUser: 2,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Interacted People Pack T2 - 1 GB DB + 2 GB File per pack",
-      },
-      {
-        id: "ci-interacted-t3",
-        name: "Interacted People Pack T3 (50K)",
-        dbPerUser: 1,
-        filePerUser: 2,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Interacted People Pack T3 - 1 GB DB + 2 GB File per pack",
-      },
-      {
-        id: "ci-unified-t1",
-        name: "Unified People Pack T1 (100K)",
-        dbPerUser: 15,
-        filePerUser: 20,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Unified People Pack T1 - 15 GB DB + 20 GB File per pack",
-      },
-      {
-        id: "ci-unified-t2",
-        name: "Unified People Pack T2 (100K)",
-        dbPerUser: 15,
-        filePerUser: 20,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Unified People Pack T2 - 15 GB DB + 20 GB File per pack",
-      },
-      {
-        id: "ci-unified-t3",
-        name: "Unified People Pack T3 (100K)",
-        dbPerUser: 15,
-        filePerUser: 20,
-        isPack: true,
-        requiresBase: "ci-base",
-        tooltip:
-          "Customer Insights Unified People Pack T3 - 15 GB DB + 20 GB File per pack",
-      },
+    skuIds: [
+      "ci-base",
+      "ci-interacted-t1",
+      "ci-interacted-t2",
+      "ci-interacted-t3",
+      "ci-unified-t1",
+      "ci-unified-t2",
+      "ci-unified-t3",
     ],
   },
 ];
+
+
+// Get tier-level defaults by taking max within tier
+const getTierDefaults = (tier) => {
+  const skus = tier.skuIds
+    .map((id) => SKU_MAP[id])
+    .filter((s) => s && s.eligible_for_default);
+  return {
+    dbDefault: skus.reduce((max, s) => Math.max(max, s.default.db_gb), 0),
+    fileDefault: skus.reduce((max, s) => Math.max(max, s.default.file_gb), 0),
+  };
+};
 
 const tierColors = {
   "erp-premium": {
@@ -344,42 +90,36 @@ const tierColors = {
     light: "bg-purple-100",
     text: "text-purple-700",
     border: "border-purple-300",
-    hover: "hover:bg-purple-50",
   },
   "erp-standard": {
     bg: "bg-indigo-500",
     light: "bg-indigo-100",
     text: "text-indigo-700",
     border: "border-indigo-300",
-    hover: "hover:bg-indigo-50",
   },
   crm: {
     bg: "bg-blue-500",
     light: "bg-blue-100",
     text: "text-blue-700",
     border: "border-blue-300",
-    hover: "hover:bg-blue-50",
   },
   "pp-premium": {
     bg: "bg-teal-500",
     light: "bg-teal-100",
     text: "text-teal-700",
     border: "border-teal-300",
-    hover: "hover:bg-teal-50",
   },
   "pp-workload": {
     bg: "bg-green-500",
     light: "bg-green-100",
     text: "text-green-700",
     border: "border-green-300",
-    hover: "hover:bg-green-50",
   },
   "customer-insights": {
     bg: "bg-orange-500",
     light: "bg-orange-100",
     text: "text-orange-700",
     border: "border-orange-300",
-    hover: "hover:bg-orange-50",
   },
 };
 
@@ -389,111 +129,150 @@ const formatCapacity = (value) => {
   return `${value.toFixed(1)} GB`;
 };
 
-const Tooltip = ({ text, children }) => (
-  <div className="group relative inline-block">
-    {children}
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 w-48 text-center pointer-events-none">
-      {text}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-    </div>
-  </div>
+// Tooltip component for educational content
+const Tooltip = ({ text, children }) => {
+  return (
+    <span className="relative group inline-flex items-center">
+      {children}
+      <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-48 p-2 text-xs text-white bg-gray-800 rounded shadow-lg">
+        {text}
+        <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
+      </span>
+    </span>
+  );
+};
+
+// Info icon for tooltips
+const InfoIcon = ({ tooltip }) => (
+  <Tooltip text={tooltip}>
+    <span className="inline-flex items-center justify-center w-4 h-4 text-xs text-gray-400 hover:text-gray-600 cursor-help ml-1">
+      ℹ️
+    </span>
+  </Tooltip>
 );
 
-const ProductRow = ({ product, value, onChange, licenses }) => {
+const ProductRow = ({ sku, value, onChange, licenses }) => {
   const hasAccrual =
-    !product.noAccrual && (product.dbPerUser > 0 || product.filePerUser > 0);
+    sku.accrues_capacity && (sku.accrual.db_gb > 0 || sku.accrual.file_gb > 0);
   const isActive = value > 0;
-  const isDisabled = product.requiresBase && !licenses[product.requiresBase];
-  const isPack = product.isPack;
-  const isTenantLicense = product.isTenantLicense;
+  const isDisabled = sku.requires_base && !(licenses[sku.requires_base] > 0);
+
+  // Determine unit label based on license type
+  const unitLabel =
+    sku.license_type === "PerApp"
+      ? "apps"
+      : sku.license_type === "PerFlow"
+        ? "flows"
+        : sku.license_type === "PerBot"
+          ? "bots"
+          : sku.license_type === "CapacityPack"
+            ? "packs"
+            : sku.license_type === "Device"
+              ? "devices"
+              : "users";
 
   return (
     <div
-      className={`py-2 transition-all duration-200 ${isActive ? "bg-gray-50 -mx-2 px-2 rounded-lg" : ""} ${isDisabled ? "opacity-50" : ""}`}
+      className={`py-1.5 ${isActive ? "bg-gray-50 -mx-2 px-2 rounded" : ""} ${isDisabled ? "opacity-50" : ""}`}
     >
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
           checked={isActive}
-          onChange={(e) => onChange(e.target.checked ? 1 : 0)}
+          onChange={(e) =>
+            onChange(e.target.checked ? sku.min_licenses || 1 : 0)
+          }
           disabled={isDisabled}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 disabled:cursor-not-allowed"
         />
-        <Tooltip
-          text={
-            isDisabled
-              ? `Enable ${product.requiresBase} to use this pack`
-              : product.tooltip
+        <span
+          className={`text-sm flex-1 ${isActive ? "font-medium text-gray-900" : "text-gray-600"}`}
+          title={
+            isDisabled ? `Requires ${sku.requires_base} to be enabled` : ""
           }
         >
-          <span
-            className={`text-sm flex-1 cursor-help ${isActive ? "font-medium text-gray-900" : "text-gray-600"} hover:text-blue-600`}
-          >
-            {product.name}
-          </span>
-        </Tooltip>
-        {isActive && hasAccrual && !isTenantLicense && (
+          {sku.name}
+          {sku.tenant_cap_db_gb && (
+            <span className="text-xs text-amber-600 ml-1">(capped)</span>
+          )}
+        </span>
+        {isActive && hasAccrual && (
           <div className="flex items-center gap-1">
             <input
               type="number"
-              min="1"
+              min={sku.min_licenses || 1}
               max="10000"
               value={value}
               onChange={(e) =>
-                onChange(Math.max(1, parseInt(e.target.value) || 1))
+                onChange(
+                  Math.max(
+                    1,
+                    parseInt(e.target.value) || sku.min_licenses || 1,
+                  ),
+                )
               }
-              className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-16 px-1.5 py-0.5 text-sm border border-gray-300 rounded text-center"
             />
-            <span className="text-xs text-gray-400">
-              {isPack ? "packs" : "users"}
-            </span>
+            <span className="text-xs text-gray-400">{unitLabel}</span>
           </div>
         )}
-        {isActive && (product.noAccrual || isTenantLicense) && (
-          <span className="text-xs text-gray-400 italic bg-gray-100 px-2 py-0.5 rounded">
-            {isTenantLicense ? "tenant-level" : "no accrual"}
-          </span>
+        {isActive && !sku.accrues_capacity && (
+          <span className="text-xs text-gray-400 italic">no accrual</span>
         )}
       </div>
-      {isActive && hasAccrual && !isTenantLicense && (
+      {isActive && hasAccrual && (
         <input
           type="range"
           min="1"
           max="500"
           value={Math.min(value, 500)}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className="w-full h-2 mt-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full h-1.5 mt-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
       )}
     </div>
   );
 };
 
-const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
+const TierGroup = ({
+  tier,
+  licenses,
+  onLicenseChange,
+  isHighest,
+  isExpanded,
+  onToggle,
+}) => {
   const colors = tierColors[tier.id];
-  const [isCollapsed, setIsCollapsed] = useState(
-    tier.defaultCollapsed || false,
-  );
+  const tierDefaults = getTierDefaults(tier);
+  const skus = tier.skuIds.map((id) => SKU_MAP[id]).filter(Boolean);
+
+  // Count how many products are selected in this tier
+  const selectedCount = skus.filter(
+    (sku) => (licenses[sku.id] || 0) > 0,
+  ).length;
 
   return (
     <div
-      className={`rounded-xl border-2 transition-all duration-300 ${isHighest ? colors.border + " " + colors.light + " shadow-md" : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"} overflow-hidden`}
+      className={`rounded-lg border ${isHighest ? colors.border + " " + colors.light : "border-gray-200 bg-white"} overflow-hidden`}
     >
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className={`w-full px-4 py-3 ${isHighest ? colors.bg + " text-white" : "bg-gray-50"} flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity`}
+        onClick={onToggle}
+        className={`w-full px-3 py-2 ${isHighest ? colors.bg + " text-white" : "bg-gray-50 hover:bg-gray-100"} flex items-center justify-between text-left transition`}
       >
         <div className="flex items-center gap-2">
-          <Tooltip text={tier.description}>
-            <span
-              className={`font-semibold text-sm cursor-help ${isHighest ? "text-white" : "text-gray-700"}`}
-            >
-              {tier.name}
-            </span>
-          </Tooltip>
+          <span
+            className={`font-semibold text-sm ${isHighest ? "text-white" : "text-gray-700"}`}
+          >
+            {tier.name}
+          </span>
           {isHighest && (
-            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full pulse-subtle">
+            <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">
               ★ Active
+            </span>
+          )}
+          {selectedCount > 0 && !isHighest && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+              {selectedCount} selected
             </span>
           )}
         </div>
@@ -501,23 +280,23 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
           <span
             className={`text-xs ${isHighest ? "text-white/80" : "text-gray-500"}`}
           >
-            {tier.dbDefault}GB / {tier.fileDefault}GB
+            {tierDefaults.dbDefault}GB / {tierDefaults.fileDefault}GB
           </span>
           <span
-            className={`transform transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"} ${isHighest ? "text-white" : "text-gray-500"}`}
+            className={`text-xs ${isHighest ? "text-white/60" : "text-gray-400"}`}
           >
-            ▼
+            {isExpanded ? "▲" : "▼"}
           </span>
         </div>
       </button>
-      {!isCollapsed && (
-        <div className="px-4 py-3 space-y-1">
-          {tier.products.map((product) => (
+      {isExpanded && (
+        <div className="px-3 py-2 space-y-1">
+          {skus.map((sku) => (
             <ProductRow
-              key={product.id}
-              product={product}
-              value={licenses[product.id] || 0}
-              onChange={(val) => onLicenseChange(product.id, val)}
+              key={sku.id}
+              sku={sku}
+              value={licenses[sku.id] || 0}
+              onChange={(val) => onLicenseChange(sku.id, val)}
               licenses={licenses}
             />
           ))}
@@ -530,71 +309,107 @@ const TierGroup = ({ tier, licenses, onLicenseChange, isHighest }) => {
 const CapacityGauge = ({
   label,
   defaultValue,
-  accrualValue,
-  packValue,
+  perUserAccrualValue = 0,
+  perAppAccrualValue = 0,
+  perPackAccrualValue = 0,
+  addonValue = 0,
   total,
   maxValue,
   color,
-  icon,
+  tooltip,
 }) => {
   const defaultPct = (defaultValue / maxValue) * 100;
-  const accrualPct = (accrualValue / maxValue) * 100;
-  const packPct = (packValue / maxValue) * 100;
+  const perUserAccrualPct = (perUserAccrualValue / maxValue) * 100;
+  const perAppAccrualPct = (perAppAccrualValue / maxValue) * 100;
+  const perPackAccrualPct = (perPackAccrualValue / maxValue) * 100;
+  const addonPct = (addonValue / maxValue) * 100;
 
   return (
-    <div className="mb-8 fade-in">
-      <div className="flex justify-between items-baseline mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
-          <span className="text-lg font-semibold text-gray-800">{label}</span>
-        </div>
-        <span className="text-3xl font-bold text-gray-900">
+    <div className="mb-6">
+      <div className="flex justify-between items-baseline mb-2">
+        <span className="text-lg font-semibold text-gray-800">
+          {label}
+          {tooltip && <InfoIcon tooltip={tooltip} />}
+        </span>
+        <span className="text-2xl font-bold text-gray-900">
           {formatCapacity(total)}
         </span>
       </div>
 
       {/* Stacked bar */}
-      <div className="h-10 bg-gray-200 rounded-xl overflow-hidden flex shadow-inner">
+      <div className="h-8 bg-gray-200 rounded-lg overflow-hidden flex">
         {defaultValue > 0 && (
           <div
-            className={`${color} flex items-center justify-center text-white text-sm font-medium capacity-bar`}
+            className={`${color} flex items-center justify-center text-white text-xs font-medium transition-all duration-300`}
             style={{ width: `${defaultPct}%` }}
           >
             {defaultPct > 15 && formatCapacity(defaultValue)}
           </div>
         )}
-        {accrualValue > 0 && (
+        {perUserAccrualValue > 0 && (
           <div
-            className="bg-gray-500 flex items-center justify-center text-white text-sm font-medium capacity-bar"
-            style={{ width: `${accrualPct}%` }}
+            className="bg-gray-400 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${perUserAccrualPct}%` }}
           >
-            {accrualPct > 15 && `+${formatCapacity(accrualValue)}`}
+            {perUserAccrualPct > 15 &&
+              `+${formatCapacity(perUserAccrualValue)}`}
           </div>
         )}
-        {packValue > 0 && (
+        {perAppAccrualValue > 0 && (
           <div
-            className="bg-amber-500 flex items-center justify-center text-white text-sm font-medium capacity-bar"
-            style={{ width: `${packPct}%` }}
+            className="bg-green-600 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${perAppAccrualPct}%` }}
           >
-            {packPct > 15 && `+${formatCapacity(packValue)}`}
+            {perAppAccrualPct > 15 && `+${formatCapacity(perAppAccrualValue)}`}
+          </div>
+        )}
+        {perPackAccrualValue > 0 && (
+          <div
+            className="bg-orange-500 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${perPackAccrualPct}%` }}
+          >
+            {perPackAccrualPct > 15 &&
+              `+${formatCapacity(perPackAccrualValue)}`}
+          </div>
+        )}
+        {addonValue > 0 && (
+          <div
+            className="bg-amber-500 flex items-center justify-center text-white text-xs font-medium transition-all duration-300"
+            style={{ width: `${addonPct}%` }}
+          >
+            {addonPct > 15 && `+${formatCapacity(addonValue)}`}
           </div>
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex gap-6 mt-3 text-sm text-gray-600 flex-wrap">
-        <div className="flex items-center gap-2">
-          <div className={`w-4 h-4 rounded ${color}`}></div>
+      <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-600">
+        <div className="flex items-center gap-1">
+          <div className={`w-3 h-3 rounded ${color}`}></div>
           <span>Default: {formatCapacity(defaultValue)}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-gray-500"></div>
-          <span>Per-user: {formatCapacity(accrualValue)}</span>
-        </div>
-        {packValue > 0 && (
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-amber-500"></div>
-            <span>Per-pack: {formatCapacity(packValue)}</span>
+        {perUserAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-gray-400"></div>
+            <span>Per-user: {formatCapacity(perUserAccrualValue)}</span>
+          </div>
+        )}
+        {perAppAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-green-600"></div>
+            <span>Per-app: {formatCapacity(perAppAccrualValue)}</span>
+          </div>
+        )}
+        {perPackAccrualValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-orange-500"></div>
+            <span>Per-pack: {formatCapacity(perPackAccrualValue)}</span>
+          </div>
+        )}
+        {addonValue > 0 && (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-amber-500"></div>
+            <span>Add-ons: {formatCapacity(addonValue)}</span>
           </div>
         )}
       </div>
@@ -602,444 +417,628 @@ const CapacityGauge = ({
   );
 };
 
-const HowItWorks = () => {
-  const [isOpen, setIsOpen] = useState(false);
+// Collapsible info panel for educational content
+const InfoPanel = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden mb-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-blue-100 transition"
       >
-        <span className="font-semibold text-gray-700 flex items-center gap-2">
-          <span>ℹ️</span>
-          How Capacity Licensing Works
+        <span className="text-sm font-medium text-blue-800 flex items-center gap-1">
+          <span>ℹ️</span> {title}
         </span>
-        <span
-          className={`transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-        >
-          ▼
-        </span>
+        <span className="text-blue-600">{isOpen ? "▲" : "▼"}</span>
       </button>
       {isOpen && (
-        <div className="px-4 py-4 space-y-4 text-sm text-gray-600 fade-in">
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-1">
-              Default Capacity (Tenant-level)
-            </h4>
-            <p>
-              When you license any Dataverse product, your tenant receives a
-              one-time default capacity allocation. The highest tier product you
-              license determines this amount. For example, if you have both D365
-              Sales Enterprise and D365 Finance, you get the ERP Standard
-              defaults (90 GB DB, 80 GB File) instead of CRM defaults.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-1">
-              Per-User Accrual
-            </h4>
-            <p>
-              In addition to default capacity, many products add capacity for
-              each licensed user. This per-user capacity stacks across all
-              products. So 100 Sales Enterprise users add 25 GB of database
-              capacity (0.25 GB × 100).
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-1">
-              Highest Tier Wins
-            </h4>
-            <p>
-              Only the highest tier's default capacity is granted - they don't
-              stack. The tiers from highest to lowest are: ERP Premium → ERP
-              Standard → CRM → Power Platform Premium → Power Platform Workload.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-1">
-              Products Without Accrual
-            </h4>
-            <p>
-              Some products (like Sales Professional or Power Apps per app)
-              don't add per-user capacity but still trigger the default capacity
-              grant if they're the highest tier licensed.
-            </p>
-          </div>
+        <div className="px-3 py-2 border-t border-blue-200 text-xs text-blue-800 space-y-2">
+          {children}
         </div>
       )}
     </div>
   );
 };
 
-const Header = () => (
-  <header className="bg-gradient-to-r from-purple-700 via-blue-600 to-teal-500 text-white py-4 px-4 shadow-lg no-print">
-    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-      <div className="flex items-center gap-3">
-        <div className="bg-white/20 p-2 rounded-lg">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="w-6 h-6"
-          >
-            <path d="M3 6.75A.75.75 0 013.75 6h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 6.75zM3 12a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75A.75.75 0 013 12zm0 5.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" />
-          </svg>
-        </div>
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">
-            Dataverse Capacity Calculator
-          </h1>
-          <p className="text-sm text-white/80">
-            Microsoft Power Platform & Dynamics 365
-          </p>
-        </div>
-      </div>
-      <div className="text-sm bg-white/10 px-3 py-1 rounded-full">
-        August 2026 Values
+// Announcement banner with dismiss functionality
+const WhatsNewPanel = ({ onDismiss }) => {
+  return (
+    <div className="bg-sky-50 border border-sky-200 rounded-lg mb-4 px-3 py-2">
+      <div className="flex items-start justify-between gap-3">
+        <a
+          href="https://licensing.guide/licensing-knowledge-for-ai-agents-dataverse-capacity-mcp-server/"
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="text-sm text-sky-800 font-medium hover:underline"
+        >
+          🆕 Now available: Dataverse Capacity MCP Server
+        </a>
+        <button
+          onClick={onDismiss}
+          className="text-sky-400 hover:text-sky-600 text-lg leading-none"
+          aria-label="Dismiss announcement"
+          title="Dismiss"
+        >
+          ×
+        </button>
       </div>
     </div>
-  </header>
-);
+  );
+};
 
-const Footer = () => (
-  <footer className="bg-gray-800 text-gray-300 py-6 px-4 mt-auto no-print">
-    <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="text-sm text-center md:text-left">
-          <p className="text-gray-400">
-            Disclaimer: This calculator provides estimates based on publicly
-            available licensing information.
-          </p>
-          <p className="text-gray-500 mt-1">
-            Verify actual entitlements in the Power Platform Admin Center.
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 text-sm">
-          <a
-            href="https://learn.microsoft.com/en-us/power-platform/admin/capacity-storage"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors flex items-center gap-1"
-          >
-            <span>📚</span> Capacity Documentation
-          </a>
-          <a
-            href="https://learn.microsoft.com/en-us/dynamics365/fin-ops-core/dev-itpro/get-started/storage-management"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors flex items-center gap-1"
-          >
-            <span>💾</span> Storage Management
-          </a>
-          <a
-            href="https://admin.powerplatform.microsoft.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors flex items-center gap-1"
-          >
-            <span>⚙️</span> Admin Center
-          </a>
-        </div>
-      </div>
-    </div>
-  </footer>
-);
+export default function DataverseCapacityCalculator() {
+  const [licenses, setLicenses] = useState({ "sales-ent": 10 });
+  const [addons, setAddons] = useState({ db_gb: 0, file_gb: 0 });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(true);
+  // Track which tier groups are expanded - default to first tier expanded on desktop,
+  // but keep Customer Insights collapsed by default
+  const [expandedTiers, setExpandedTiers] = useState(() => {
+    const initial = { "erp-premium": true };
+    // Don't expand tiers that have defaultCollapsed
+    PRODUCT_TIERS.forEach((tier) => {
+      if (tier.defaultCollapsed) {
+        initial[tier.id] = false;
+      }
+    });
+    return initial;
+  });
 
-export default function App() {
-  const [licenses, setLicenses] = useState({});
+  // Track first visit and what's new dismissal using localStorage
+  useEffect(() => {
+    try {
+      const hasVisited = localStorage.getItem("dataverse-calc-visited");
+      if (!hasVisited) {
+        setShowOnboarding(true);
+        setSidebarOpen(true);
+        localStorage.setItem("dataverse-calc-visited", "true");
+      }
 
-  const handleLicenseChange = (productId, value) => {
-    setLicenses((prev) => ({ ...prev, [productId]: value }));
+      const whatsNewDismissed = localStorage.getItem(
+        "dataverse-calc-mcp-banner-dismissed",
+      );
+      if (whatsNewDismissed) {
+        setShowWhatsNew(false);
+      }
+    } catch (e) {
+      // localStorage may not be available in incognito mode or when disabled
+    }
+  }, []);
+
+  const handleDismissWhatsNew = () => {
+    setShowWhatsNew(false);
+    try {
+      localStorage.setItem(
+        "dataverse-calc-mcp-banner-dismissed",
+        "true",
+      );
+    } catch (e) {
+      // localStorage may not be available
+    }
+  };
+
+  const handleToggleTier = (tierId) => {
+    setExpandedTiers((prev) => ({ ...prev, [tierId]: !prev[tierId] }));
+  };
+
+  // Close sidebar on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarOpen]);
+
+  const handleLicenseChange = (skuId, value) => {
+    setLicenses((prev) => ({ ...prev, [skuId]: value }));
+  };
+
+  const handleAddonChange = (type, value) => {
+    const numValue = Math.max(0, parseInt(value) || 0);
+    setAddons((prev) => ({ ...prev, [type]: numValue }));
   };
 
   const calculation = useMemo(() => {
-    let highestTier = null;
-    let dbAccrual = 0;
-    let fileAccrual = 0;
-    let dbPackAccrual = 0;
-    let filePackAccrual = 0;
-    const breakdown = [];
+    const activeLicenses = Object.entries(licenses)
+      .filter(([, count]) => Number(count) > 0)
+      .map(([skuId, count]) => ({ skuId, count: Number(count) }));
 
-    // Check if Customer Insights base is licensed
-    const hasCustomerInsightsBase = (licenses["ci-base"] || 0) > 0;
+    const result = calculateCapacity(
+      { licenses: activeLicenses, addons, paygEnvironments: 0 },
+      SKU_MAP,
+    );
+
+    let highestTier = null;
+    let highestDefaultDb = 0;
+    let highestDefaultFile = 0;
 
     for (const tier of PRODUCT_TIERS) {
-      for (const product of tier.products) {
-        const count = licenses[product.id] || 0;
-        if (count > 0) {
-          if (!highestTier || tier.priority < highestTier.priority) {
-            highestTier = tier;
-          }
+      const activeTierLicenses = tier.skuIds.filter(
+        (skuId) => Number(licenses[skuId] || 0) > 0,
+      );
 
-          // Skip CI pack capacity if CI base is not licensed
-          if (product.requiresBase === "ci-base" && !hasCustomerInsightsBase) {
-            continue;
-          }
+      if (activeTierLicenses.length === 0) continue;
 
-          const dbContribution = product.dbPerUser * count;
-          const fileContribution = product.filePerUser * count;
+      const tierDefaults = tier.skuIds.reduce(
+        (acc, skuId) => {
+          const sku = SKU_MAP[skuId];
+          if (!sku || !sku.eligible_for_default) return acc;
+          return {
+            db: Math.max(acc.db, sku.default.db_gb),
+            file: Math.max(acc.file, sku.default.file_gb),
+          };
+        },
+        { db: 0, file: 0 },
+      );
 
-          // Separate pack accrual from user accrual
-          if (product.isPack) {
-            dbPackAccrual += dbContribution;
-            filePackAccrual += fileContribution;
-          } else {
-            dbAccrual += dbContribution;
-            fileAccrual += fileContribution;
-          }
+      const isHigherTier =
+        tierDefaults.db > highestDefaultDb || tierDefaults.file > highestDefaultFile;
 
-          // Add to breakdown if there's accrual
-          if (
-            !product.noAccrual &&
-            !product.isTenantLicense &&
-            (dbContribution > 0 || fileContribution > 0)
-          ) {
-            breakdown.push({
-              productId: product.id,
-              name: product.name,
-              count,
-              dbContribution,
-              fileContribution,
-              isPack: product.isPack || false,
-            });
-          }
-        }
+      if (isHigherTier) {
+        highestTier = tier;
+        highestDefaultDb = tierDefaults.db;
+        highestDefaultFile = tierDefaults.file;
       }
     }
 
-    const dbDefault = highestTier?.dbDefault || 0;
-    const fileDefault = highestTier?.fileDefault || 0;
-
     return {
       highestTier,
-      dbDefault,
-      fileDefault,
-      dbAccrual,
-      fileAccrual,
-      dbPackAccrual,
-      filePackAccrual,
-      dbTotal: dbDefault + dbAccrual + dbPackAccrual,
-      fileTotal: fileDefault + fileAccrual + filePackAccrual,
-      breakdown,
+      dbDefault: result.tenant_pool.breakdown.default.db_gb,
+      fileDefault: result.tenant_pool.breakdown.default.file_gb,
+      dbPerUserAccrual: result.tenant_pool.breakdown.per_user_accrual.db_gb,
+      filePerUserAccrual: result.tenant_pool.breakdown.per_user_accrual.file_gb,
+      dbPerAppAccrual: result.tenant_pool.breakdown.per_app_accrual.db_gb,
+      filePerAppAccrual: result.tenant_pool.breakdown.per_app_accrual.file_gb,
+      dbPerPackAccrual: result.tenant_pool.breakdown.per_pack_accrual.db_gb,
+      filePerPackAccrual: result.tenant_pool.breakdown.per_pack_accrual.file_gb,
+      dbAddon: addons.db_gb,
+      fileAddon: addons.file_gb,
+      dbTotal: result.tenant_pool.db_gb,
+      fileTotal: result.tenant_pool.file_gb,
+      breakdown: result.per_sku_breakdown.map(({ skuId, count, db_gb, file_gb, capped }) => ({
+        sku: SKU_MAP[skuId],
+        count,
+        db: db_gb,
+        file: file_gb,
+        isPack: SKU_MAP[skuId]?.license_type === 'CapacityPack',
+        capped,
+      })),
     };
-  }, [licenses]);
+  }, [licenses, addons]);
 
   const maxDb = Math.max(150, calculation.dbTotal * 1.1);
   const maxFile = Math.max(150, calculation.fileTotal * 1.1);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header />
+    <div className="h-screen bg-gray-100 flex flex-col lg:flex-row relative">
+      {/* Mobile Backdrop Overlay */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${
+          sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden={!sidebarOpen}
+        role="button"
+        tabIndex={sidebarOpen ? 0 : -1}
+        aria-label="Close sidebar"
+      />
 
-      <main className="flex-1 flex flex-col lg:flex-row">
-        {/* Left Panel - Product Selection */}
-        <div className="w-full lg:w-96 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 p-4 lg:p-6 lg:overflow-y-auto lg:h-[calc(100vh-8rem)] no-print">
-          <h2 className="text-lg font-bold text-gray-900 mb-1">
-            Select Products
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Choose your licensed products and enter user counts
+      {/* Left Panel - Product Selection (Collapsible Sidebar on Mobile) */}
+      <div
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+          w-80 bg-white border-r border-gray-200 
+          overflow-y-auto p-4 flex-shrink-0 h-full
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+        `}
+      >
+        {/* First-visit onboarding banner */}
+        {showOnboarding && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-sm text-blue-800 font-medium">👋 Welcome!</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Tap products to add them, then close this panel to see your
+                  capacity results.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowOnboarding(false)}
+                className="text-blue-400 hover:text-blue-600 text-lg leading-none"
+                aria-label="Close onboarding banner"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        <h1 className="text-lg font-bold text-gray-900 mb-1">
+          Dataverse Capacity Calculator
+        </h1>
+        <div className="text-xs text-gray-500 mb-4 space-y-1">
+          <p>
+            Source: {ENTITLEMENT_SOURCE.month} licensing guide data
           </p>
-
-          <div className="space-y-4">
-            {PRODUCT_TIERS.map((tier) => (
-              <TierGroup
-                key={tier.id}
-                tier={tier}
-                licenses={licenses}
-                onLicenseChange={handleLicenseChange}
-                isHighest={calculation.highestTier?.id === tier.id}
-              />
-            ))}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <button
-              onClick={() => setLicenses({})}
-              className="w-full py-2.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+          <p>
+            Brought to you by{" "}
+            <a
+              href="https://licensing.guide"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-blue-600 hover:underline"
             >
-              🔄 Reset all selections
-            </button>
-          </div>
-
-          <HowItWorks />
+              licensing.guide
+            </a>
+          </p>
+          <a
+            href="https://github.com/jukkan/dataverse-capacity"
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            aria-label="Open GitHub repository"
+            className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-3.5 h-3.5"
+              aria-hidden="true"
+            >
+              <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.4 7.86 10.92.58.1.79-.25.79-.56 0-.28-.01-1.02-.01-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.97.1-.75.4-1.27.73-1.56-2.55-.29-5.24-1.27-5.24-5.67 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.14 1.17a10.9 10.9 0 0 1 5.72 0c2.18-1.48 3.14-1.17 3.14-1.17.62 1.58.23 2.74.11 3.03.73.8 1.18 1.82 1.18 3.07 0 4.41-2.69 5.37-5.25 5.66.41.35.78 1.03.78 2.08 0 1.5-.01 2.71-.01 3.08 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z" />
+            </svg>
+            <span>GitHub repository</span>
+          </a>
         </div>
 
-        {/* Right Panel - Capacity Metrics */}
-        <div className="flex-1 p-4 lg:p-8 lg:overflow-y-auto lg:h-[calc(100vh-8rem)]">
-          <div className="max-w-2xl mx-auto">
-            {calculation.highestTier ? (
-              <>
-                <div className="mb-8 fade-in">
-                  <div
-                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${tierColors[calculation.highestTier.id].light} ${tierColors[calculation.highestTier.id].text} text-sm font-medium shadow-sm`}
-                  >
-                    <span className="text-lg">★</span>
-                    <span>{calculation.highestTier.name}</span>
-                    <span className="text-gray-500">
-                      determines default capacity
-                    </span>
-                  </div>
-                </div>
+        {/* Educational info panel */}
+        <InfoPanel title="How Capacity Works">
+          <p>
+            <strong>Tenant Pool:</strong> Dataverse capacity is pooled at the
+            tenant level and shared across all environments.
+          </p>
+          <p>
+            <strong>Default Capacity:</strong> Granted once per tenant from your
+            highest-tier eligible license. Does not stack.
+          </p>
+          <p>
+            <strong>Per-user Accrual:</strong> Additional capacity that stacks
+            based on user/app/pack counts.
+          </p>
+          <p>
+            <strong>Add-ons:</strong> Purchased separately in 1 GB increments,
+            pooled tenant-wide.
+          </p>
+        </InfoPanel>
 
-                <CapacityGauge
-                  label="Database Capacity"
-                  defaultValue={calculation.dbDefault}
-                  accrualValue={calculation.dbAccrual}
-                  packValue={calculation.dbPackAccrual}
-                  total={calculation.dbTotal}
-                  maxValue={maxDb}
-                  color={tierColors[calculation.highestTier.id].bg}
-                  icon="🗄️"
-                />
+        {/* MCP Server announcement - only shown on mobile in sidebar */}
+        {showWhatsNew && (
+          <div className="lg:hidden">
+            <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+          </div>
+        )}
 
-                <CapacityGauge
-                  label="File Capacity"
-                  defaultValue={calculation.fileDefault}
-                  accrualValue={calculation.fileAccrual}
-                  packValue={calculation.filePackAccrual}
-                  total={calculation.fileTotal}
-                  maxValue={maxFile}
-                  color={tierColors[calculation.highestTier.id].bg}
-                  icon="📁"
-                />
+        <div className="space-y-3">
+          {PRODUCT_TIERS.map((tier) => (
+            <TierGroup
+              key={tier.id}
+              tier={tier}
+              licenses={licenses}
+              onLicenseChange={handleLicenseChange}
+              isHighest={calculation.highestTier?.id === tier.id}
+              isExpanded={expandedTiers[tier.id] || false}
+              onToggle={() => handleToggleTier(tier.id)}
+            />
+          ))}
+        </div>
 
-                {/* Breakdown table */}
-                <div className="mt-8 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm fade-in">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <span className="font-semibold text-gray-700">
-                      📊 Capacity Breakdown
-                    </span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50/50">
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">
-                            Source
-                          </th>
-                          <th className="text-right py-3 px-4 font-medium text-gray-600">
-                            Database
-                          </th>
-                          <th className="text-right py-3 px-4 font-medium text-gray-600">
-                            File
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-4 text-gray-700 font-medium">
-                            Default ({calculation.highestTier.name})
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-900">
-                            {calculation.dbDefault} GB
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-900">
-                            {calculation.fileDefault} GB
-                          </td>
-                        </tr>
-                        {calculation.breakdown
-                          .filter((item) => !item.isPack)
-                          .map((item) => (
-                            <tr
-                              key={item.productId}
-                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                            >
-                              <td className="py-3 px-4 text-gray-600">
-                                {item.name} × {item.count}
-                              </td>
-                              <td className="py-3 px-4 text-right text-gray-700">
-                                +{item.dbContribution.toFixed(1)} GB
-                              </td>
-                              <td className="py-3 px-4 text-right text-gray-700">
-                                +{item.fileContribution.toFixed(0)} GB
-                              </td>
-                            </tr>
-                          ))}
-                        {calculation.breakdown.some((item) => item.isPack) && (
-                          <>
-                            <tr className="bg-amber-50">
-                              <td
-                                colSpan="3"
-                                className="py-2 px-4 text-xs font-semibold text-amber-800 uppercase tracking-wide"
-                              >
-                                Per-pack contributions (add-on capacity)
-                              </td>
-                            </tr>
-                            {calculation.breakdown
-                              .filter((item) => item.isPack)
-                              .map((item) => (
-                                <tr
-                                  key={item.productId}
-                                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                                >
-                                  <td className="py-3 px-4 text-gray-600">
-                                    {item.name} × {item.count}
-                                  </td>
-                                  <td className="py-3 px-4 text-right text-gray-700">
-                                    +{item.dbContribution.toFixed(1)} GB
-                                  </td>
-                                  <td className="py-3 px-4 text-right text-gray-700">
-                                    +{item.fileContribution.toFixed(0)} GB
-                                  </td>
-                                </tr>
-                              ))}
-                          </>
-                        )}
-                        <tr className="bg-gradient-to-r from-gray-50 to-gray-100 font-semibold">
-                          <td className="py-3 px-4 text-gray-900">
-                            Total Capacity
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-900">
-                            {formatCapacity(calculation.dbTotal)}
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-900">
-                            {formatCapacity(calculation.fileTotal)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-400 fade-in">
-                <div className="text-center">
-                  <div className="text-6xl mb-4">📋</div>
-                  <p className="text-lg">
-                    Select products to calculate capacity
-                  </p>
-                  <p className="text-sm mt-2">
-                    Choose from the product tiers on the left
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Notes */}
-            <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-              <strong className="flex items-center gap-2 mb-2">
-                <span>⚠️</span> Important Notes
-              </strong>
-              <ul className="list-disc list-inside space-y-1 text-amber-700">
-                <li>
-                  Default capacity is granted once per tenant — highest tier
-                  wins
-                </li>
-                <li>Per-user accrual stacks across all licensed products</li>
-                <li>Log capacity (2-3 GB) is not shown in this calculator</li>
-                <li>
-                  Always verify actual entitlements in Power Platform Admin
-                  Center
-                </li>
-              </ul>
+        {/* Capacity Add-ons Section */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-1 mb-3">
+            <span className="text-sm font-semibold text-gray-700">
+              Capacity Add-ons
+            </span>
+            <InfoIcon tooltip="Add-on capacity purchased separately. Each unit adds 1 GB to the tenant pool." />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 flex-1">
+                Database (GB)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="10000"
+                value={addons.db_gb}
+                onChange={(e) => handleAddonChange("db_gb", e.target.value)}
+                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 flex-1">File (GB)</label>
+              <input
+                type="number"
+                min="0"
+                max="10000"
+                value={addons.file_gb}
+                onChange={(e) => handleAddonChange("file_gb", e.target.value)}
+                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center"
+              />
             </div>
           </div>
         </div>
-      </main>
 
-      <Footer />
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              setLicenses({});
+              setAddons({ db_gb: 0, file_gb: 0 });
+            }}
+            className="w-full py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+          >
+            Reset all
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed bottom-6 left-6 z-50 lg:hidden flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200"
+      >
+        {sidebarOpen ? (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            <span className="text-sm font-medium">Close</span>
+          </>
+        ) : (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+              />
+            </svg>
+            <span className="text-sm font-medium">Products</span>
+          </>
+        )}
+      </button>
+
+      {/* Right Panel - Capacity Metrics */}
+      <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
+        <div className="max-w-xl">
+          {/* MCP Server announcement - shown on desktop in right panel */}
+          {showWhatsNew && (
+            <div className="hidden lg:block mb-6">
+              <WhatsNewPanel onDismiss={handleDismissWhatsNew} />
+            </div>
+          )}
+
+          {calculation.highestTier ? (
+            <>
+              <div className="mb-8">
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${tierColors[calculation.highestTier.id].light} ${tierColors[calculation.highestTier.id].text} text-sm font-medium`}
+                >
+                  <span>★</span>
+                  <span>{calculation.highestTier.name}</span>
+                  <span className="text-gray-400">
+                    determines default capacity
+                  </span>
+                </div>
+              </div>
+
+              <CapacityGauge
+                label="Database Capacity"
+                defaultValue={calculation.dbDefault}
+                perUserAccrualValue={calculation.dbPerUserAccrual}
+                perAppAccrualValue={calculation.dbPerAppAccrual}
+                perPackAccrualValue={calculation.dbPerPackAccrual}
+                addonValue={calculation.dbAddon}
+                total={calculation.dbTotal}
+                maxValue={maxDb}
+                color={tierColors[calculation.highestTier.id].bg}
+                tooltip="Total Dataverse database storage pooled at tenant level."
+              />
+
+              <CapacityGauge
+                label="File Capacity"
+                defaultValue={calculation.fileDefault}
+                perUserAccrualValue={calculation.filePerUserAccrual}
+                perAppAccrualValue={calculation.filePerAppAccrual}
+                perPackAccrualValue={calculation.filePerPackAccrual}
+                addonValue={calculation.fileAddon}
+                total={calculation.fileTotal}
+                maxValue={maxFile}
+                color={tierColors[calculation.highestTier.id].bg}
+                tooltip="Total Dataverse file/attachment storage pooled at tenant level."
+              />
+
+              {/* Breakdown table */}
+              <div className="mt-8 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-1">
+                  <span className="font-semibold text-gray-700 text-sm">
+                    Capacity Breakdown
+                  </span>
+                  <InfoIcon tooltip="Detailed breakdown of capacity sources. Default capacity comes from highest tier. Per-user accrual stacks." />
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-2 px-4 font-medium text-gray-600">
+                        Source
+                      </th>
+                      <th className="text-right py-2 px-4 font-medium text-gray-600">
+                        Database
+                      </th>
+                      <th className="text-right py-2 px-4 font-medium text-gray-600">
+                        File
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-gray-100">
+                      <td className="py-2 px-4 text-gray-700">
+                        Default ({calculation.highestTier.name})
+                        <InfoIcon tooltip="One-time default capacity from your highest-tier license. Does not stack across products." />
+                      </td>
+                      <td className="py-2 px-4 text-right text-gray-900">
+                        {calculation.dbDefault} GB
+                      </td>
+                      <td className="py-2 px-4 text-right text-gray-900">
+                        {calculation.fileDefault} GB
+                      </td>
+                    </tr>
+                    {calculation.breakdown
+                      .filter(({ isPack }) => !isPack)
+                      .map(({ sku, count, db, file, capped }) => (
+                        <tr key={sku.id} className="border-b border-gray-100">
+                          <td className="py-2 px-4 text-gray-600">
+                            {sku.name} × {count}
+                            {capped && (
+                              <span className="text-xs text-amber-600 ml-1">
+                                (capped at {sku.tenant_cap_db_gb} GB)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-4 text-right text-gray-700">
+                            +{db.toFixed(1)} GB
+                          </td>
+                          <td className="py-2 px-4 text-right text-gray-700">
+                            +{file.toFixed(1)} GB
+                          </td>
+                        </tr>
+                      ))}
+                    {calculation.breakdown.some(({ isPack }) => isPack) && (
+                      <>
+                        <tr className="bg-orange-50">
+                          <td
+                            colSpan="3"
+                            className="py-2 px-4 text-xs font-semibold text-orange-800 uppercase tracking-wide"
+                          >
+                            Per-pack contributions (add-on capacity)
+                          </td>
+                        </tr>
+                        {calculation.breakdown
+                          .filter(({ isPack }) => isPack)
+                          .map(({ sku, count, db, file, capped }) => (
+                            <tr
+                              key={sku.id}
+                              className="border-b border-gray-100"
+                            >
+                              <td className="py-2 px-4 text-gray-600">
+                                {sku.name} × {count}
+                                {capped && (
+                                  <span className="text-xs text-amber-600 ml-1">
+                                    (capped at {sku.tenant_cap_db_gb} GB)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-4 text-right text-gray-700">
+                                +{db.toFixed(1)} GB
+                              </td>
+                              <td className="py-2 px-4 text-right text-gray-700">
+                                +{file.toFixed(1)} GB
+                              </td>
+                            </tr>
+                          ))}
+                      </>
+                    )}
+                    {(calculation.dbAddon > 0 || calculation.fileAddon > 0) && (
+                      <tr className="border-b border-gray-100 bg-amber-50">
+                        <td className="py-2 px-4 text-amber-800">
+                          Capacity Add-ons
+                          <InfoIcon tooltip="Purchased add-on capacity, pooled tenant-wide." />
+                        </td>
+                        <td className="py-2 px-4 text-right text-amber-800">
+                          +{calculation.dbAddon} GB
+                        </td>
+                        <td className="py-2 px-4 text-right text-amber-800">
+                          +{calculation.fileAddon} GB
+                        </td>
+                      </tr>
+                    )}
+                    <tr className="bg-gray-50 font-semibold">
+                      <td className="py-2 px-4 text-gray-900">Total</td>
+                      <td className="py-2 px-4 text-right text-gray-900">
+                        {formatCapacity(calculation.dbTotal)}
+                      </td>
+                      <td className="py-2 px-4 text-right text-gray-900">
+                        {formatCapacity(calculation.fileTotal)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <div className="text-center">
+                <div className="text-4xl mb-2 hidden lg:block">←</div>
+                <div className="text-4xl mb-2 lg:hidden">📋</div>
+                <p>Select products to calculate capacity</p>
+                <p className="text-sm mt-2 hidden lg:block">
+                  Choose from the product tiers on the left
+                </p>
+                <p className="text-sm mt-2 lg:hidden">
+                  Tap the menu button below to select products
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            <strong>Notes:</strong> Default capacity granted once per tenant —
+            highest tier wins. Per-user accrual stacks across all products. Log
+            capacity (2-3 GB) not shown. Verify actual entitlements in Power
+            Platform Admin Center.
+          </div>
+
+          {/* Version indicator */}
+          <div className="mt-4 text-center text-xs text-gray-400">
+            Capacity values: August 2026
+          </div>
+          <div className="mt-2 text-center text-xs">
+            <a
+              href="https://licensing.guide/resources/"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              Download latest licensing guides here
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
