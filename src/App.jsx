@@ -265,6 +265,9 @@ const TierGroup = ({
           >
             {tier.name}
           </span>
+          {tier.id === "customer-insights" && (
+            <InfoIcon tooltip="Microsoft expresses Customer Insights storage entitlement per 50K Interacted People and 100K Unified People; the calculator prorates each pack accordingly." />
+          )}
           {isHighest && (
             <span className="text-xs bg-white/20 px-1.5 py-0.5 rounded">
               ★ Active
