@@ -9,6 +9,29 @@ export const ENTITLEMENT_SOURCE = {
 // Extracted from the interactive calculator — single source of truth.
 // Each SKU maps to one row in the Microsoft licensing guides.
 
+export const CAPACITY_IMPACT_LABELS = {
+  "default-and-accrual": "default + accrual",
+  "default-only": "default only",
+  "accrual-only": "accrual only",
+  "no-capacity": "no capacity",
+};
+
+export const getCapacityImpact = (sku) => {
+  if (!sku) return "no-capacity";
+
+  const hasDefault =
+    Boolean(sku.eligible_for_default) &&
+    (sku.default?.db_gb > 0 || sku.default?.file_gb > 0);
+  const hasAccrual =
+    Boolean(sku.accrues_capacity) &&
+    (sku.accrual?.db_gb > 0 || sku.accrual?.file_gb > 0);
+
+  if (hasDefault && hasAccrual) return "default-and-accrual";
+  if (hasDefault) return "default-only";
+  if (hasAccrual) return "accrual-only";
+  return "no-capacity";
+};
+
 export const SKUS = [
   // ── D365 ERP Premium ──────────────────────────────────────────────────────
   {
