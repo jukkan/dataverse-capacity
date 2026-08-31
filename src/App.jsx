@@ -1,5 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { ENTITLEMENT_SOURCE, SKU_MAP } from "./data/capacity-entitlements.js";
+import {
+  CAPACITY_IMPACT_LABELS,
+  ENTITLEMENT_SOURCE,
+  SKU_MAP,
+  getCapacityImpact,
+} from "./data/capacity-entitlements.js";
 import { calculateCapacity } from "./lib/calculate-capacity.js";
 
 
@@ -191,6 +196,14 @@ const ProductRow = ({ sku, value, onChange, licenses }) => {
     sku.accrues_capacity && (sku.accrual.db_gb > 0 || sku.accrual.file_gb > 0);
   const isActive = value > 0;
   const isDisabled = sku.requires_base && !(licenses[sku.requires_base] > 0);
+  const impact = getCapacityImpact(sku);
+  const impactLabel = CAPACITY_IMPACT_LABELS[impact] || CAPACITY_IMPACT_LABELS["no-capacity"];
+  const impactClasses = {
+    "default-and-accrual": "bg-purple-100 text-purple-700 border-purple-200",
+    "default-only": "bg-sky-100 text-sky-700 border-sky-200",
+    "accrual-only": "bg-amber-100 text-amber-700 border-amber-200",
+    "no-capacity": "bg-gray-100 text-gray-600 border-gray-200",
+  };
 
   // Determine unit label based on license type
   const unitLabel =
@@ -220,17 +233,26 @@ const ProductRow = ({ sku, value, onChange, licenses }) => {
           disabled={isDisabled}
           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 disabled:cursor-not-allowed"
         />
-        <span
-          className={`text-sm flex-1 ${isActive ? "font-medium text-gray-900" : "text-gray-600"}`}
-          title={
-            isDisabled ? `Requires ${sku.requires_base} to be enabled` : ""
-          }
-        >
-          {sku.name}
-          {sku.tenant_cap_db_gb && (
-            <span className="text-xs text-amber-600 ml-1">(capped)</span>
-          )}
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`text-sm ${isActive ? "font-medium text-gray-900" : "text-gray-600"}`}
+              title={
+                isDisabled ? `Requires ${sku.requires_base} to be enabled` : ""
+              }
+            >
+              {sku.name}
+              {sku.tenant_cap_db_gb && (
+                <span className="text-xs text-amber-600 ml-1">(capped)</span>
+              )}
+            </span>
+            <span
+              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${impactClasses[impact]}`}
+            >
+              {impactLabel}
+            </span>
+          </div>
+        </div>
         {isActive && hasAccrual && (
           <div className="flex items-center gap-1">
             <input
@@ -250,9 +272,6 @@ const ProductRow = ({ sku, value, onChange, licenses }) => {
             />
             <span className="text-xs text-gray-400">{unitLabel}</span>
           </div>
-        )}
-        {isActive && !sku.accrues_capacity && (
-          <span className="text-xs text-gray-400 italic">no accrual</span>
         )}
       </div>
       {isActive && hasAccrual && (
@@ -737,22 +756,32 @@ export default function DataverseCapacityCalculator() {
         </div>
 
         {/* Educational info panel */}
-        <InfoPanel title="How Capacity Works">
+        <InfoPanel title="Capacity impact status" defaultOpen={true}>
           <p>
-            <strong>Tenant Pool:</strong> Dataverse capacity is pooled at the
-            tenant level and shared across all environments.
+            <strong>Not every license affects storage in the same way.</strong>{" "}
+            Some licenses establish the tenant's one-time default capacity, some
+            add storage as quantities grow, and some do neither.
           </p>
           <p>
-            <strong>Default Capacity:</strong> Granted once per tenant from your
-            highest-tier eligible license. Does not stack.
+            <strong>Default + accrual:</strong> Example: a license that both sets a
+            tenant default and adds per-user or per-pack capacity.
           </p>
           <p>
-            <strong>Per-user Accrual:</strong> Additional capacity that stacks
-            based on user/app/pack counts.
+            <strong>Default only:</strong> Example: Sales Professional and Customer
+            Service Professional contribute 30 GB Database / 40 GB File to the
+            tenant default but add 0 GB per user. A license showing 0 GB per user
+            can still matter because it may contribute to default capacity.
           </p>
           <p>
-            <strong>Add-ons:</strong> Purchased separately in 1 GB increments,
-            pooled tenant-wide.
+            <strong>Accrual only:</strong> Example: Operations – Activity has no
+            tenant default, but adds 1 GB Database + 2 GB File per user.
+          </p>
+          <p>
+            <strong>No capacity:</strong> Field Service Contractor and Customer
+            Insights $0 user licenses explicitly add no Dataverse capacity.
+            Dynamics 365 attach licenses generally do not add platform capacity,
+            except that Customer Insights attach can supply the same one-time
+            default entitlement as the base license.
           </p>
         </InfoPanel>
 
