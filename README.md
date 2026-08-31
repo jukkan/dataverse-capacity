@@ -2,6 +2,8 @@
 
 An interactive web-based calculator for estimating Microsoft Dataverse capacity based on Power Platform and Dynamics 365 product licenses.
 
+Entitlement source month: August 2026.
+
 [**OPEN CALCULATOR**](https://dataverse.licensing.guide/)
 
 [Read intro blog post](https://licensing.guide/december-2025-dataverse-default-capacity-changes-illustrated/)
@@ -20,6 +22,9 @@ An interactive web-based calculator for estimating Microsoft Dataverse capacity 
 - **Print-friendly**: Clean output for printing or sharing
 
 ## Capacity Calculation
+
+> The calculator currently focuses primarily on Database + File capacity; Log support is not yet implemented. All estimates should be verified against the Power Platform admin center and the current Microsoft licensing guides.
+
 
 ### How Capacity Works
 
@@ -152,7 +157,7 @@ That means other operators can deploy the MCP server on their own infrastructure
 
 ## Disclaimer
 
-This calculator provides estimates based on publicly available licensing information (August 2026 values). Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/).
+This calculator provides estimates based on publicly available licensing information from the August 2026 Microsoft licensing guides. It focuses primarily on Dataverse Database + File capacity unless Log support is implemented. Always verify actual entitlements in the [Power Platform Admin Center](https://admin.powerplatform.microsoft.com/) and current Microsoft licensing guides.
 
 ## Resources
 
