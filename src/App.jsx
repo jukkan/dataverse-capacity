@@ -530,6 +530,9 @@ export default function DataverseCapacityCalculator() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(true);
+  const [isNarrowViewport, setIsNarrowViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false,
+  );
   // Track which tier groups are expanded - default to first tier expanded on desktop,
   // but keep Customer Insights collapsed by default
   const [expandedTiers, setExpandedTiers] = useState(() => {
@@ -543,11 +546,27 @@ export default function DataverseCapacityCalculator() {
     return initial;
   });
 
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsNarrowViewport(window.innerWidth < 1024);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    if (!isNarrowViewport) {
+      setShowOnboarding(false);
+    }
+  }, [isNarrowViewport]);
+
   // Track first visit and what's new dismissal using localStorage
   useEffect(() => {
     try {
       const hasVisited = localStorage.getItem("dataverse-calc-visited");
-      if (!hasVisited) {
+      if (!hasVisited && isNarrowViewport) {
         setShowOnboarding(true);
         setSidebarOpen(true);
         localStorage.setItem("dataverse-calc-visited", "true");
@@ -562,7 +581,7 @@ export default function DataverseCapacityCalculator() {
     } catch (e) {
       // localStorage may not be available in incognito mode or when disabled
     }
-  }, []);
+  }, [isNarrowViewport]);
 
   const handleDismissWhatsNew = () => {
     setShowWhatsNew(false);
@@ -696,7 +715,7 @@ export default function DataverseCapacityCalculator() {
         `}
       >
         {/* First-visit onboarding banner */}
-        {showOnboarding && (
+        {showOnboarding && isNarrowViewport && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
@@ -755,33 +774,18 @@ export default function DataverseCapacityCalculator() {
           </a>
         </div>
 
-        {/* Educational info panel */}
-        <InfoPanel title="Capacity impact status" defaultOpen={true}>
+        <InfoPanel title="How Capacity Works" defaultOpen={true}>
           <p>
-            <strong>Not every license affects storage in the same way.</strong>{" "}
-            Some licenses establish the tenant's one-time default capacity, some
-            add storage as quantities grow, and some do neither.
+            <strong>Default capacity</strong> is granted once per tenant and comes
+            from the highest-tier product you license.
           </p>
           <p>
-            <strong>Default + accrual:</strong> Example: a license that both sets a
-            tenant default and adds per-user or per-pack capacity.
+            <strong>Per-user accrual</strong> stacks across products and adds
+            additional database and file capacity as more licenses are enabled.
           </p>
           <p>
-            <strong>Default only:</strong> Example: Sales Professional and Customer
-            Service Professional contribute 30 GB Database / 40 GB File to the
-            tenant default but add 0 GB per user. A license showing 0 GB per user
-            can still matter because it may contribute to default capacity.
-          </p>
-          <p>
-            <strong>Accrual only:</strong> Example: Operations – Activity has no
-            tenant default, but adds 1 GB Database + 2 GB File per user.
-          </p>
-          <p>
-            <strong>No capacity:</strong> Field Service Contractor and Customer
-            Insights $0 user licenses explicitly add no Dataverse capacity.
-            Dynamics 365 attach licenses generally do not add platform capacity,
-            except that Customer Insights attach can supply the same one-time
-            default entitlement as the base license.
+            <strong>Not every license contributes equally.</strong> Some add a
+            one-time default, some add recurring accrual, and some add neither.
           </p>
         </InfoPanel>
 
@@ -853,6 +857,35 @@ export default function DataverseCapacityCalculator() {
             Reset all
           </button>
         </div>
+
+        <InfoPanel title="Capacity impact status" defaultOpen={false}>
+          <p>
+            <strong>Not every license affects storage in the same way.</strong>{" "}
+            Some licenses establish the tenant's one-time default capacity, some
+            add storage as quantities grow, and some do neither.
+          </p>
+          <p>
+            <strong>Default + accrual:</strong> Example: a license that both sets a
+            tenant default and adds per-user or per-pack capacity.
+          </p>
+          <p>
+            <strong>Default only:</strong> Example: Sales Professional and Customer
+            Service Professional contribute 30 GB Database / 40 GB File to the
+            tenant default but add 0 GB per user. A license showing 0 GB per user
+            can still matter because it may contribute to default capacity.
+          </p>
+          <p>
+            <strong>Accrual only:</strong> Example: Operations – Activity has no
+            tenant default, but adds 1 GB Database + 2 GB File per user.
+          </p>
+          <p>
+            <strong>No capacity:</strong> Field Service Contractor and Customer
+            Insights $0 user licenses explicitly add no Dataverse capacity.
+            Dynamics 365 attach licenses generally do not add platform capacity,
+            except that Customer Insights attach can supply the same one-time
+            default entitlement as the base license.
+          </p>
+        </InfoPanel>
       </div>
 
       {/* Mobile Toggle Button */}
