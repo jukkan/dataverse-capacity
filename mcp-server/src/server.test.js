@@ -84,6 +84,55 @@ test("calculateCapacity floors license counts before applying accrual", () => {
   assert.equal(result.tenant_pool.file_gb, 24);
 });
 
+test("Customer Insights accrual is prorated by pack size and still requires the base license", () => {
+  const active = calculateCapacity(
+    {
+      licenses: [
+        { skuId: "ci-base", count: 1 },
+        { skuId: "ci-interacted-t1", count: 1 },
+        { skuId: "ci-interacted-t2", count: 1 },
+        { skuId: "ci-interacted-t3", count: 1 },
+        { skuId: "ci-unified-t1", count: 1 },
+      ],
+    },
+    SKU_MAP
+  );
+
+  const interactedT1 = active.per_sku_breakdown.find(
+    (row) => row.skuId === "ci-interacted-t1"
+  );
+  const interactedT2 = active.per_sku_breakdown.find(
+    (row) => row.skuId === "ci-interacted-t2"
+  );
+  const interactedT3 = active.per_sku_breakdown.find(
+    (row) => row.skuId === "ci-interacted-t3"
+  );
+  const unifiedT1 = active.per_sku_breakdown.find(
+    (row) => row.skuId === "ci-unified-t1"
+  );
+
+  assert.equal(interactedT1.db_gb, 0.1);
+  assert.equal(interactedT1.file_gb, 0.2);
+  assert.equal(interactedT2.db_gb, 0.2);
+  assert.equal(interactedT2.file_gb, 0.4);
+  assert.equal(interactedT3.db_gb, 1);
+  assert.equal(interactedT3.file_gb, 2);
+  assert.equal(unifiedT1.db_gb, 15);
+  assert.equal(unifiedT1.file_gb, 20);
+  assert.equal(active.errors.length, 0);
+
+  const withoutBase = calculateCapacity(
+    {
+      licenses: [{ skuId: "ci-interacted-t1", count: 1 }],
+    },
+    SKU_MAP
+  );
+
+  assert.deepEqual(withoutBase.errors, [
+    'SKU "ci-interacted-t1" requires "ci-base" to be licensed — skipped.',
+  ]);
+});
+
 test("calculateCapacity reflects the August 2026 Power Platform entitlement refresh", () => {
   const result = calculateCapacity(
     {
